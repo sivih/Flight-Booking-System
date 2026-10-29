@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFly - Book Flights & Travel Deals</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/useroptions.css}" />
+
+</head>
+<body>
+
+<!-- ========================================================================
+     AUTH MODAL BACKDROP (blurs background)
+======================================================================== -->
+<div id="authModalBackdrop" onclick="closeAuthModal()"></div>
+
+<!-- ========================================================================
+     AUTH MODAL PANEL
+======================================================================== -->
+<div id="authModalPanel" role="dialog" aria-modal="true" aria-label="Sign In / Register">
+    <div id="authModalCard">
+        <button id="authModalCloseBtn" onclick="closeAuthModal()" aria-label="Close modal">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <div id="authModalContent">
+            <div id="authModalLoading">
+                <div class="auth-spinner"></div>
+                <span>Loading…</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<header class="navbar-custom w-100">
+    <div class="nav-container-fluid">
+        <div class="logo">
+            <i class="bi bi-wind logo-icon-wing"></i>MyFly<span class="logo-bold"></span>
+        </div>
+        <nav class="nav-actions">
+            <a th:href="@{/}" class="nav-btn">Home</a>
+            <a th:href="@{/useroptions}" class="nav-btn active">Search</a>
+            <a th:href="@{/bookingform}" class="nav-btn">Book Flight</a>
+            <a th:href="@{/users/profile}" class="nav-btn">My Profile</a>
+        </nav>
+        
+        <div class="user-profile">
+            <!-- Show Sign In button only when NOT authenticated -->
+            <button th:if="${!isLoggedIn}"
+                    id="signInButton"
+                    class="btn-myfly-signin"
+                    onclick="openAuthModal('login')">Sign In</button>
+
+            <!-- Show profile icon only when authenticated -->
+            <a th:if="${isLoggedIn}"
+               th:href="@{/users/profile}"
+               class="profile-icon-link"
+               title="My Profile">
+                <i class="bi bi-person-circle profile-badge-icon"></i>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Auth state flag for JS — read by saveTrip() to guard unauthenticated saves -->
+<!-- FIX: data-user-id scopes localStorage keys per user. Uses session.userId (numeric)
+     which matches the value injected by bookingform.html and profile.html so all
+     three pages share identical key prefixes for a given logged-in user. -->
+<span id="appAuthState"
+      th:attr="data-logged-in=${isLoggedIn},data-user-id=${session.userId != null ? session.userId : 'guest'}"
+      style="display:none;"></span>
+
+<main class="w-100 overflow-hidden">
+
+    <section class="booking-hero-full-row w-100 pb-2">
+
+        <div id="heroBackgroundCarousel" class="carousel slide carousel-fade hero-carousel-container" data-bs-ride="carousel" data-bs-interval="5000" data-bs-pause="false">
+            <div class="carousel-inner w-100 h-100">
+                <div class="carousel-item active w-100 h-100">
+                    <div class="hero-image-backdrop-cover" th:style="'background-image: url(' + @{/images/Sahara.jpg} + ');'"></div>
+                </div>
+                <div class="carousel-item w-100 h-100">
+                    <div class="hero-image-backdrop-cover" th:style="'background-image: url(' + @{/images/Snow.jpg} + ');'"></div>
+                </div>
+                <div class="carousel-item w-100 h-100">
+                    <div class="hero-image-backdrop-cover" th:style="'background-image: url(' + @{/images/Beach.jpg} + ');'"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-booking-inner-scaffold px-4 pt-5 flex-grow-1">
+
+            <div class="welcome-section text-center mb-4 text-white">
+                <h1 class="welcome-title text-shadow-sm fw-bold">Where would you like to go?</h1>
+                <p class="welcome-subtitle text-white-50">Discover low-fare flights to premium destinations worldwide.</p>
+            </div>
+
+            <div class="search-widget-card shadow-lg p-4 bg-white rounded-4 mx-auto mb-3">
+
+                <!-- Trip type tabs -->
+                <div class="d-flex gap-4 mb-3 border-bottom pb-2">
+                    <div class="form-check custom-radio-tab">
+                        <input class="form-check-input" type="radio" name="tripType" id="returnTrip" checked>
+                        <label class="form-check-label fw-semibold text-dark" for="returnTrip">Return</label>
+                    </div>
+                    <div class="form-check custom-radio-tab">
+                        <input class="form-check-input" type="radio" name="tripType" id="oneWayTrip">
+                        <label class="form-check-label fw-semibold text-dark" for="oneWayTrip">One-way</label>
+                    </div>
+                </div>
+
+                <form class="row g-2 align-items-end" onsubmit="return false;">
+
+                    <!-- ── DEPARTURE ── -->
+                    <div class="col-lg-3 col-md-6 position-relative city-search-wrapper" id="depWrapper">
+                        <label class="form-label text-muted fw-bold small uppercase-label">From</label>
+                        <div class="input-group group-focus-animated">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-geo-alt-fill text-primary"></i></span>
+                            <span id="depDisplay"
+                                  class="city-trigger-display placeholder-state"
+                                  role="button"
+                                  tabindex="0"
+                                  onclick="openCityDropdown('dep')"
+                                  onkeydown="if(event.key==='Enter'||event.key===' ')openCityDropdown('dep')">
+                                Select departure city
+                            </span>
+                        </div>
+                        <!-- Hidden real value sent to backend -->
+                        <input type="hidden" id="departureInput" name="departure" value="">
+
+                        <!-- Departure dropdown panel -->
+                        <div class="city-dropdown-panel" id="depDropdown">
+                            <div class="city-search-input-wrapper">
+                                <div class="city-search-input-inner">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" id="depSearchBox"
+                                           placeholder="Search city or country..."
+                                           oninput="filterCityList('dep', this.value)"
+                                           autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="city-dropdown-scroller" id="depCityList"></div>
+                        </div>
+                    </div>
+
+                    <!-- ── SWAP BUTTON ── -->
+                    <div class="col-lg-1 col-md-12 text-center d-flex align-items-center justify-content-center swap-action-wrapper">
+                        <button type="button" id="routeSwapBtn" class="btn-interactive-swap" title="Swap Route">
+                            <i class="bi bi-arrow-left-right swap-icon-transition"></i>
+                        </button>
+                    </div>
+
+                    <!-- ── DESTINATION ── -->
+                    <div class="col-lg-3 col-md-6 position-relative city-search-wrapper" id="arrWrapper">
+                        <label class="form-label text-muted fw-bold small uppercase-label">To</label>
+                        <div class="input-group group-focus-animated">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-cursor-fill text-success"></i></span>
+                            <span id="arrDisplay"
+                                  class="city-trigger-display placeholder-state"
+                                  role="button"
+                                  tabindex="0"
+                                  onclick="openCityDropdown('arr')"
+                                  onkeydown="if(event.key==='Enter'||event.key===' ')openCityDropdown('arr')">
+                                Select destination city
+                            </span>
+                        </div>
+                        <input type="hidden" id="destinationInput" name="destination" value="">
+
+                        <!-- Destination dropdown panel -->
+                        <div class="city-dropdown-panel" id="arrDropdown">
+                            <div class="city-search-input-wrapper">
+                                <div class="city-search-input-inner">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" id="arrSearchBox"
+                                           placeholder="Search city or country..."
+                                           oninput="filterCityList('arr', this.value)"
+                                           autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="city-dropdown-scroller" id="arrCityList"></div>
+                        </div>
+                    </div>
+
+                    <!-- ── DATES ── -->
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label text-muted fw-bold small uppercase-label">Dates</label>
+                        <div class="row g-2">
+                            <!-- Depart -->
+                            <div class="col-6 position-relative">
+                                <div class="input-group group-focus-animated" id="departCalTrigger">
+                                    <span class="input-group-text bg-light border-0"><i class="bi bi-calendar3 text-secondary"></i></span>
+                                    <span id="departDateDisplay"
+                                          class="date-trigger-display placeholder-state"
+                                          role="button" tabindex="0"
+                                          onclick="openCalendar('depart')"
+                                          onkeydown="if(event.key==='Enter')openCalendar('depart')">
+                                        Depart
+                                    </span>
+                                </div>
+                                <div class="calendar-overlay-panel" id="departCalendar"></div>
+                            </div>
+                            <!-- Return -->
+                            <div class="col-6 position-relative return-date-wrapper" id="returnDateWrapper">
+                                <div class="input-group group-focus-animated">
+                                    <span class="input-group-text bg-light border-0"><i class="bi bi-calendar-check text-secondary"></i></span>
+                                    <span id="returnDateDisplay"
+                                          class="date-trigger-display placeholder-state"
+                                          role="button" tabindex="0"
+                                          onclick="openCalendar('return')"
+                                          onkeydown="if(event.key==='Enter')openCalendar('return')">
+                                        Return
+                                    </span>
+                                </div>
+                                <div class="calendar-overlay-panel" id="returnCalendar"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="departDateVal" name="departDate">
+                        <input type="hidden" id="returnDateVal" name="returnDate">
+                    </div>
+
+                    <!-- ── PASSENGERS ── -->
+                    <div class="col-lg-2 col-md-6 position-relative" id="paxWrapper">
+                        <label class="form-label text-muted fw-bold small uppercase-label">Passengers</label>
+                        <div class="input-group group-focus-animated">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-people-fill text-secondary"></i></span>
+                            <span id="paxDisplay"
+                                  class="pax-trigger-display"
+                                  role="button" tabindex="0"
+                                  onclick="togglePaxDropdown()"
+                                  onkeydown="if(event.key==='Enter')togglePaxDropdown()">
+                                1 Adult
+                            </span>
+                        </div>
+                        <div class="pax-dropdown-panel" id="paxDropdown">
+                            <div class="pax-row">
+                                <div>
+                                    <div class="pax-label">Adults</div>
+                                    <div class="pax-sublabel">Age 12+</div>
+                                </div>
+                                <div class="pax-counter-controls">
+                                    <button class="pax-counter-btn" onclick="changePax('adults',-1)" id="adultsDecBtn" disabled>-</button>
+                                    <span class="pax-count-display" id="adultsCount">1</span>
+                                    <button class="pax-counter-btn" onclick="changePax('adults',1)" id="adultsIncBtn">+</button>
+                                </div>
+                            </div>
+                            <div class="pax-row">
+                                <div>
+                                    <div class="pax-label">Children</div>
+                                    <div class="pax-sublabel">Age 2-11</div>
+                                </div>
+                                <div class="pax-counter-controls">
+                                    <button class="pax-counter-btn" onclick="changePax('children',-1)" id="childrenDecBtn" disabled>-</button>
+                                    <span class="pax-count-display" id="childrenCount">0</span>
+                                    <button class="pax-counter-btn" onclick="changePax('children',1)" id="childrenIncBtn">+</button>
+                                </div>
+                            </div>
+                            <div class="pax-row">
+                                <div>
+                                    <div class="pax-label">Infants</div>
+                                    <div class="pax-sublabel">Under 2</div>
+                                </div>
+                                <div class="pax-counter-controls">
+                                    <button class="pax-counter-btn" onclick="changePax('infants',-1)" id="infantsDecBtn" disabled>-</button>
+                                    <span class="pax-count-display" id="infantsCount">0</span>
+                                    <button class="pax-counter-btn" onclick="changePax('infants',1)" id="infantsIncBtn">+</button>
+                                </div>
+                            </div>
+                            <button class="pax-done-btn" onclick="closePaxDropdown()">Done</button>
+                        </div>
+                    </div>
+
+                    <!-- ── SEARCH BUTTON ── -->
+                    <div class="col-12 mt-4">
+                        <!--
+                          Feature 5: Auth-aware Search Flights button.
+                          th:data-logged-in passes the server-side isLoggedIn flag to JS.
+                          The JS handler reads the flag at click time and either:
+                            A) redirects directly to /bookingform with cities pre-filled (logged in)
+                            B) opens the login modal, then on success redirects (not logged in)
+                        -->
+                        <button type="button"
+                                id="searchFlightsBtn"
+                                th:attr="data-logged-in=${isLoggedIn}"
+                                onclick="handleSearchFlights()"
+                                class="btn btn-search-airline w-100 fw-bold py-3 text-white">
+                            <i class="bi bi-search me-2"></i> SEARCH FLIGHTS
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="hero-footer-wrapper text-center w-100 position-relative z-index-10 mt-auto">
+            <div class="discover-scroll-trigger">
+                <button type="button" class="btn-hero-discover fw-bold btn btn-link text-decoration-none" onclick="scrollToMainContent()">
+                    Discover <i class="bi bi-chevron-double-down ms-1 animate-bounce text-primary"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div id="mainContentGrid" class="sections-global-grid-holder py-5 px-4 mx-auto">
+
+        <div class="text-center mb-5">
+            <div class="micro-filter-row d-inline-flex align-items-center justify-content-center flex-wrap gap-2">
+                <span class="filter-label-text text-muted small me-1">Trending routes from Tirana:</span>
+                <button type="button" class="preset-pill-tag content-grid-preset" onclick="fillDestination('Rome')">Rome, Italy</button>
+                <button type="button" class="preset-pill-tag content-grid-preset" onclick="fillDestination('Paris')">Paris, France</button>
+                <button type="button" class="preset-pill-tag content-grid-preset" onclick="fillDestination('Barcelona')">Barcelona, Spain</button>
+                <button type="button" class="preset-pill-tag content-grid-preset" onclick="fillDestination('London')">London, UK</button>
+                <button type="button" class="preset-pill-tag content-grid-preset" onclick="fillDestination('Stockholm')">Stockholm, Sweden</button>
+            </div>
+        </div>
+
+        <div class="airline-promo-row row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="promo-banner-card p-4 rounded-4 text-white position-relative overflow-hidden blue-accent-gradient h-100">
+                    <div class="position-relative z-index-2">
+                        <span class="badge bg-warning text-dark mb-2 fw-bold">PROMO EXCLUSIVE</span>
+                        <h4 class="fw-bold">Join the MyFly Premium Pass</h4>
+                        <p class="small text-white-50 max-width-70">Get a guaranteed €10 discount on all airline flight tickets starting above €19.99 all year round.</p>
+                        <a href="#" class="btn btn-sm btn-light fw-bold px-3 py-2 rounded-2 mt-2">Unlock Low Fares</a>
+                    </div>
+                    <i class="bi bi-gem absolute-bg-icon"></i>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="promo-banner-card p-4 rounded-4 text-white position-relative overflow-hidden dark-accent-gradient h-100">
+                    <div class="position-relative z-index-2">
+                        <span class="badge bg-info text-dark mb-2 fw-bold">FLEXIBLE TRAVEL</span>
+                        <h4 class="fw-bold">Flight Cancellations & Protection</h4>
+                        <p class="small text-white-50 max-width-70">Change operational booking paths instantly without paying dynamic administration penalties.</p>
+                        <a href="#" class="btn btn-sm btn-outline-light fw-bold px-3 py-2 rounded-2 mt-2">Learn More</a>
+                    </div>
+                    <i class="bi bi-shield-check absolute-bg-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="carousel-wrapper mb-5">
+            <h2 class="section-title mb-4"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Hot Seat Sales This Week</h2>
+            <div id="carouselExampleAutoplaying" class="carousel slide shadow-sm" data-bs-ride="carousel">
+                <div class="carousel-inner rounded-4">
+                    <div class="carousel-item active" data-bs-interval="4000">
+                        <img th:src="@{/images/barcelona.jpg}" class="d-block w-100 carousel-img" alt="Barcelona">
+                        <div class="carousel-caption d-none d-md-block custom-caption">
+                            <span class="badge bg-danger mb-2">LIMITED SEATS LEFTOVER</span>
+                            <h5>Tirana to Barcelona</h5>
+                            <p>Explore spectacular architecture starting from €234.0.</p>
+                        </div>
+                    </div>
+                    <div class="carousel-item" data-bs-interval="4000">
+                        <img th:src="@{/images/Paris.jpg}" class="d-block w-100 carousel-img" alt="Paris">
+                        <div class="carousel-caption d-none d-md-block custom-caption">
+                            <span class="badge bg-primary mb-2">SPRING BREAK DISCOUNT</span>
+                            <h5>Rome to Paris</h5>
+                            <p>Catch weekend getaways and romantic escape deals this spring.</p>
+                        </div>
+                    </div>
+                    <div class="carousel-item" data-bs-interval="4000">
+                        <img th:src="@{/images/London.jpg}" class="d-block w-100 carousel-img" alt="London">
+                        <div class="carousel-caption d-none d-md-block custom-caption">
+                            <span class="badge bg-dark mb-2">BUSINESS SAVER RATE</span>
+                            <h5>Stockholm to London</h5>
+                            <p>Book premium business seats at ultra-low off-season rates.</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+
+       <div class="getaways-wrapper mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title m-0"><i class="bi bi-compass-fill text-primary me-2"></i>Inspirational Weekend Getaways</h2>
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small fw-medium">Refreshed Friday</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/Rome2.jpg}" class="getaway-card-img" alt="Rome">
+                            <span class="getaway-price-tag">From €89</span>
+                           <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'Rome, Italy', 'From €89', '/images/Rome2.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">Rome, Italy</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>2h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Wander beautiful scenic stone walkways, espresso bars, and historic visual ruins.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('Rome')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/Seville.jpg}" class="getaway-card-img" alt="Seville">
+                            <span class="getaway-price-tag">From €142</span>
+                            <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'Seville, Spain', 'From €142', '/images/Seville.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">Seville, Spain</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>3.5h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Immerse yourself in spectacular Moorish palace plazas and authentic flamenco traditions.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('Seville')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/Stockholm.jpg}" class="getaway-card-img" alt="Stockholm">
+                            <span class="getaway-price-tag">From €195</span>
+                           <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'Stockholm, Sweden', 'From €195', '/images/Stockholm.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">Stockholm, Sweden</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>3h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Discover clean coastal island archipelago layouts, Scandinavian design, and historic alleys.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('Stockholm')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/Paris.jpg}" class="getaway-card-img" alt="Paris">
+                            <span class="getaway-price-tag">From €119</span>
+                            <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'Paris, France', 'From €119', '/images/Paris.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">Paris, France</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>2.5h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Stroll down the Seine, visit iconic art museums, and enjoy premium dynamic bistro dining.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('Paris')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/barcelona.jpg}" class="getaway-card-img" alt="Barcelona">
+                            <span class="getaway-price-tag">From €135</span>
+                            <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'Barcelona, Spain', 'From €135', '/images/barcelona.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">Barcelona, Spain</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>2.8h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Experience unique Antoni Gaudi masterworks alongside vibrant city beach fronts.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('Barcelona')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6">
+                    <div class="getaway-card bg-white rounded-4 overflow-hidden shadow-sm border-0 h-100">
+                        <div class="getaway-img-zoom-container">
+                            <img th:src="@{/images/London.jpg}" class="getaway-card-img" alt="London">
+                            <span class="getaway-price-tag">From €168</span>
+                            <button type="button" class="btn-getaway-bookmark" onclick="saveTrip(this, 'London, United Kingdom', 'From €168', '/images/London.jpg')"><i class="bi bi-bookmark-star"></i></button>
+                        </div>
+                        <div class="getaway-card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h5 class="getaway-card-title m-0">London, United Kingdom</h5>
+                                <span class="getaway-duration-pill"><i class="bi bi-clock me-1"></i>3.2h Flight</span>
+                            </div>
+                            <p class="getaway-card-text text-muted small">Explore global historic theater stages, expansive royal parks, and iconic landmarks.</p>
+                            <button type="button" class="btn-getaway-action w-100 mt-2" onclick="fillDestination('London')">Select Destination</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="myfly-newsletter-container mb-5 shadow-sm rounded-4 overflow-hidden bg-white">
+            <div class="row g-0 align-items-stretch">
+                <div class="col-lg-5 col-md-12 position-relative myfly-newsletter-img-side">
+                    <img th:src="@{/images/Travelers.jpg}" class="myfly-newsletter-img" alt="Stay Tuned">
+                </div>
+                <div class="col-lg-7 col-md-12 p-5 d-flex flex-column justify-content-center text-start">
+                    <h2 class="myfly-newsletter-title fw-bold mb-2">Stay tuned!</h2>
+                    <p class="myfly-newsletter-subtitle text-muted mb-4">Subscribe to our newsletter and be the first to know about new routes and special offers.</p>
+                    <form onsubmit="triggerSubscribe(event, this)">
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <input type="text" class="form-control myfly-input py-2" placeholder="First name" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <input type="email" class="form-control myfly-input py-2" placeholder="E-mail" required>
+                            </div>
+                        </div>
+                        <div class="form-check text-start mb-4 align-items-start d-flex gap-2">
+                            <input class="form-check-input myfly-checkbox flex-shrink-0 mt-1" type="checkbox" id="myflyPrivacyConsent" required>
+                            <label class="form-check-label text-muted small" for="myflyPrivacyConsent">
+                                By clicking this checkbox, I accept receiving newsletters and offers from MyFly. Details in the <a href="#" class="myfly-link-accent text-decoration-underline">Privacy Notice</a>.
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-myfly-magenta px-5 py-2 fw-bold text-white text-uppercase">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-wrapper mx-auto mb-4">
+            <div class="row g-4 text-center">
+                <div class="col-md-4">
+                    <div class="feature-card p-4 rounded-4 bg-white h-100 shadow-sm border-0">
+                        <div class="feature-icon mb-3"><i class="bi bi-tags-fill"></i></div>
+                        <h5 class="fw-bold">Best Price Guaranteed</h5>
+                        <p class="text-muted small mb-0">Find unbeatable flight rates across premium regional airline operators.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card p-4 rounded-4 bg-white h-100 shadow-sm border-0">
+                        <div class="feature-icon mb-3"><i class="bi bi-shield-check"></i></div>
+                        <h5 class="fw-bold">Safe & Secure Booking</h5>
+                        <p class="text-muted small mb-0">Your financial data and trip planning configurations are fully encrypted.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card p-4 rounded-4 bg-white h-100 shadow-sm border-0">
+                        <div class="feature-icon mb-3"><i class="bi bi-headset"></i></div>
+                        <h5 class="fw-bold">24/7 Priority Support</h5>
+                        <p class="text-muted small mb-0">Our support channels stand ready to assist your custom requirements dynamically.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+/* ========================================================================
+   CITY DATA — full list (A–Z). Add/remove cities as your DB grows.
+   Each entry: { city, country, iata, flag (2-letter ISO for CSS) }
+======================================================================== */
+const ALL_CITIES = [
+    { city: 'Tirana',      country: 'Albania',        iata: 'TIA', flag: 'AL' },
+    { city: 'Amsterdam',   country: 'Netherlands',     iata: 'AMS', flag: 'NL' },
+    { city: 'Athens',      country: 'Greece',          iata: 'ATH', flag: 'GR' },
+    { city: 'Barcelona',   country: 'Spain',           iata: 'BCN', flag: 'ES' },
+    { city: 'Belgrade',    country: 'Serbia',          iata: 'BEG', flag: 'RS' },
+    { city: 'Berlin',      country: 'Germany',         iata: 'BER', flag: 'DE' },
+    { city: 'Brussels',    country: 'Belgium',         iata: 'BRU', flag: 'BE' },
+    { city: 'Bucharest',   country: 'Romania',         iata: 'OTP', flag: 'RO' },
+    { city: 'Budapest',    country: 'Hungary',         iata: 'BUD', flag: 'HU' },
+    { city: 'Copenhagen',  country: 'Denmark',         iata: 'CPH', flag: 'DK' },
+    { city: 'Dubai',       country: 'UAE',             iata: 'DXB', flag: 'AE' },
+    { city: 'Dublin',      country: 'Ireland',         iata: 'DUB', flag: 'IE' },
+    { city: 'Frankfurt',   country: 'Germany',         iata: 'FRA', flag: 'DE' },
+    { city: 'Geneva',      country: 'Switzerland',     iata: 'GVA', flag: 'CH' },
+    { city: 'Helsinki',    country: 'Finland',         iata: 'HEL', flag: 'FI' },
+    { city: 'Istanbul',    country: 'Turkey',          iata: 'IST', flag: 'TR' },
+    { city: 'Kyiv',        country: 'Ukraine',         iata: 'KBP', flag: 'UA' },
+    { city: 'Lisbon',      country: 'Portugal',        iata: 'LIS', flag: 'PT' },
+    { city: 'Ljubljana',   country: 'Slovenia',        iata: 'LJU', flag: 'SI' },
+    { city: 'London',      country: 'United Kingdom',  iata: 'LHR', flag: 'GB' },
+    { city: 'Madrid',      country: 'Spain',           iata: 'MAD', flag: 'ES' },
+    { city: 'Milan',       country: 'Italy',           iata: 'MXP', flag: 'IT' },
+    { city: 'Munich',      country: 'Germany',         iata: 'MUC', flag: 'DE' },
+    { city: 'Oslo',        country: 'Norway',          iata: 'OSL', flag: 'NO' },
+    { city: 'Paris',       country: 'France',          iata: 'CDG', flag: 'FR' },
+    { city: 'Prague',      country: 'Czech Republic',  iata: 'PRG', flag: 'CZ' },
+    { city: 'Rome',        country: 'Italy',           iata: 'FCO', flag: 'IT' },
+    { city: 'Sarajevo',    country: 'Bosnia',          iata: 'SJJ', flag: 'BA' },
+    { city: 'Seville',     country: 'Spain',           iata: 'SVQ', flag: 'ES' },
+    { city: 'Skopje',      country: 'N. Macedonia',    iata: 'SKP', flag: 'MK' },
+    { city: 'Sofia',       country: 'Bulgaria',        iata: 'SOF', flag: 'BG' },
+    { city: 'Stockholm',   country: 'Sweden',          iata: 'ARN', flag: 'SE' },
+    { city: 'Vienna',      country: 'Austria',         iata: 'VIE', flag: 'AT' },
+    { city: 'Warsaw',      country: 'Poland',          iata: 'WAW', flag: 'PL' },
+    { city: 'Zagreb',      country: 'Croatia',         iata: 'ZAG', flag: 'HR' },
+    { city: 'Zurich',      country: 'Switzerland',     iata: 'ZRH', flag: 'CH' },
+];
+
+/* ========================================================================
+   STATE
+======================================================================== */
+let selectedDep = null;   // { city, country, iata, flag } or null
+let selectedArr = null;
+
+/* ========================================================================
+   FLAG HELPER — uses flagcdn.com free PNG flags
+======================================================================== */
+function flagUrl(isoCode) {
+    return 'https://flagcdn.com/w40/' + isoCode.toLowerCase() + '.png';
+}
+
+/* ========================================================================
+   RENDER CITY LIST
+======================================================================== */
+function renderCityList(side, filter) {
+    const listEl = document.getElementById(side === 'dep' ? 'depCityList' : 'arrCityList');
+    const query  = (filter || '').toLowerCase().trim();
+
+    const lockedCity = side === 'dep'
+        ? (selectedArr ? selectedArr.city : null)
+        : (selectedDep ? selectedDep.city : null);
+
+    const currentSelection = side === 'dep' ? selectedDep : selectedArr;
+
+    let filtered = ALL_CITIES.filter(c =>
+        !query ||
+        c.city.toLowerCase().includes(query) ||
+        c.country.toLowerCase().includes(query) ||
+        c.iata.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="city-no-results">No cities found for "' + filter + '"</div>';
+        return;
+    }
+
+    const groups = {};
+    filtered.forEach(c => {
+        const letter = c.city[0].toUpperCase();
+        if (!groups[letter]) groups[letter] = [];
+        groups[letter].push(c);
+    });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(letter => {
+        if (!query) {
+            html += '<div class="city-group-header">' + letter + '</div>';
+        }
+        groups[letter].forEach(c => {
+            const isSelected  = currentSelection && currentSelection.city === c.city;
+            const isExcluded  = lockedCity && lockedCity === c.city;
+
+            let rowClass = 'city-option-row';
+            if (isSelected)  rowClass += ' selected-city';
+            if (isExcluded)  rowClass += ' excluded-city';
+
+            const clickHandler = isExcluded
+                ? ''
+                : 'onclick="selectCity(\'' + side + '\', \'' + c.city + '\')"';
+
+            html += `
+                <div class="${rowClass}" ${clickHandler} title="${isExcluded ? 'Already selected as ' + (side === 'dep' ? 'destination' : 'departure') : ''}">
+                    <div class="city-flag-badge">
+                        <img src="${flagUrl(c.flag)}" alt="${c.country}" loading="lazy">
+                    </div>
+                    <div class="city-option-meta">
+                        <div class="city-option-name">${c.city}</div>
+                        <div class="city-option-country">${c.country}</div>
+                    </div>
+                    <span class="city-option-iata">${c.iata}</span>
+                </div>`;
+        });
+    });
+
+    listEl.innerHTML = html;
+}
+
+function openCityDropdown(side) {
+    closeAllPanels();
+    renderCityList(side, '');
+    const panel = document.getElementById(side === 'dep' ? 'depDropdown' : 'arrDropdown');
+    panel.classList.add('open');
+    setTimeout(() => {
+        const box = document.getElementById(side === 'dep' ? 'depSearchBox' : 'arrSearchBox');
+        if (box) box.focus();
+    }, 50);
+}
+
+function closeCityDropdown(side) {
+    const panel = document.getElementById(side === 'dep' ? 'depDropdown' : 'arrDropdown');
+    if (panel) panel.classList.remove('open');
+}
+
+function filterCityList(side, value) {
+    renderCityList(side, value);
+}
+
+function selectCity(side, cityName) {
+    const cityData = ALL_CITIES.find(c => c.city === cityName);
+    if (!cityData) return;
+
+    if (side === 'dep') {
+        selectedDep = cityData;
+        const display = document.getElementById('depDisplay');
+        display.textContent = cityData.city + ' (' + cityData.iata + ')';
+        display.classList.remove('placeholder-state');
+        document.getElementById('departureInput').value = cityData.city;
+        closeCityDropdown('dep');
+        // Pulse animation
+        display.classList.add('pulse-highlight-animation');
+        setTimeout(() => display.classList.remove('pulse-highlight-animation'), 700);
+    } else {
+        selectedArr = cityData;
+        const display = document.getElementById('arrDisplay');
+        display.textContent = cityData.city + ' (' + cityData.iata + ')';
+        display.classList.remove('placeholder-state');
+        document.getElementById('destinationInput').value = cityData.city;
+        closeCityDropdown('arr');
+        display.classList.add('pulse-highlight-animation');
+        setTimeout(() => display.classList.remove('pulse-highlight-animation'), 700);
+    }
+}
+
+function fillDestination(cityName) {
+    selectCity('arr', cityName);
+    document.getElementById('arrWrapper').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* Route swap */
+document.getElementById('routeSwapBtn').addEventListener('click', function () {
+    const tmpDep = selectedDep;
+    const tmpArr = selectedArr;
+
+    if (tmpDep) selectCity('arr', tmpDep.city);
+    else {
+        selectedArr = null;
+        const d = document.getElementById('arrDisplay');
+        d.textContent = 'Select destination city';
+        d.classList.add('placeholder-state');
+        document.getElementById('destinationInput').value = '';
+    }
+
+    if (tmpArr) selectCity('dep', tmpArr.city);
+    else {
+        selectedDep = null;
+        const d = document.getElementById('depDisplay');
+        d.textContent = 'Select departure city';
+        d.classList.add('placeholder-state');
+        document.getElementById('departureInput').value = '';
+    }
+
+    const icon = this.querySelector('.swap-icon-transition');
+    icon.style.transform = 'rotate(180deg)';
+    setTimeout(() => { icon.style.transform = ''; }, 400);
+});
+
+/* ========================================================================
+   CALENDAR SYSTEM
+======================================================================== */
+const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let calViewYear  = new Date().getFullYear();
+let calViewMonth = new Date().getMonth();
+let calMode      = 'depart'; // 'depart' | 'return'
+
+let selectedDepartDate = null;
+let selectedReturnDate = null;
+
+const SIMULATED_PRICES = (() => {
+    const prices = {};
+    const today = new Date();
+    for (let i = 1; i <= 60; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        if (Math.random() > 0.6) {
+            prices[d.toDateString()] = '€' + (Math.floor(Math.random() * 150) + 49);
+        }
+    }
+    return prices;
+})();
+
+function openCalendar(mode) {
+    calMode = mode;
+    closeAllPanels();
+    const elId = mode === 'depart' ? 'departCalendar' : 'returnCalendar';
+    calViewYear  = new Date().getFullYear();
+    calViewMonth = new Date().getMonth();
+    renderCalendar(elId);
+    document.getElementById(elId).classList.add('open');
+}
+
+function closeAllCalendars() {
+    document.getElementById('departCalendar').classList.remove('open');
+    document.getElementById('returnCalendar').classList.remove('open');
+}
+
+function renderCalendar(elId) {
+    const el     = document.getElementById(elId);
+    const today  = new Date();
+    today.setHours(0,0,0,0);
+
+    const firstDay  = new Date(calViewYear, calViewMonth, 1).getDay();
+    const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+
+    let summaryHtml = '<i class="bi bi-calendar3 me-1"></i>';
+    if (selectedDepartDate) {
+        summaryHtml += '<span class="sel-date">' + formatDate(selectedDepartDate) + '</span>';
+        if (!document.getElementById('oneWayTrip').checked) {
+            summaryHtml += ' &rarr; ';
+            summaryHtml += selectedReturnDate
+                ? '<span class="sel-date">' + formatDate(selectedReturnDate) + '</span>'
+                : '<span style="color:#94a3b8">Select return</span>';
+        }
+    } else {
+        summaryHtml += '<span style="color:#94a3b8">Select departure date</span>';
+    }
+
+    let gridHtml = DAYS_SHORT.map(d => '<div class="calendar-dow-header">' + d + '</div>').join('');
+    for (let blank = 0; blank < firstDay; blank++) {
+        gridHtml += '<div></div>';
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const thisDate = new Date(calViewYear, calViewMonth, d);
+        thisDate.setHours(0,0,0,0);
+        const isPast   = thisDate < today;
+        const isAvail  = !isPast;
+        const isToday  = thisDate.getTime() === today.getTime();
+        const isDepart = selectedDepartDate && thisDate.getTime() === selectedDepartDate.getTime();
+        const isReturn = selectedReturnDate && thisDate.getTime() === selectedReturnDate.getTime();
+        const isInRange = selectedDepartDate && selectedReturnDate
+            && thisDate > selectedDepartDate && thisDate < selectedReturnDate;
+
+        let cls = 'calendar-day-cell';
+        if (isPast)     cls += ' past-day';
+        else if (isAvail) cls += ' available';
+        if (isToday)    cls += ' today-marker';
+        if (isDepart)   cls += ' selected-depart';
+        if (isReturn)   cls += ' selected-return';
+        if (isInRange)  cls += ' in-range';
+
+        const priceTag = isAvail && SIMULATED_PRICES[thisDate.toDateString()]
+            ? '<span class="calendar-price-hint">' + SIMULATED_PRICES[thisDate.toDateString()] + '</span>'
+            : '';
+
+        const clickAttr = isAvail
+            ? 'onclick="pickCalendarDay(' + calViewYear + ',' + calViewMonth + ',' + d + ')"'
+            : '';
+
+        gridHtml += '<div class="' + cls + '" ' + clickAttr + '>' + d + priceTag + '</div>';
+    }
+
+    const confirmDisabled = !(selectedDepartDate && (
+        document.getElementById('oneWayTrip').checked || selectedReturnDate
+    ));
+
+    el.innerHTML = `
+        <div class="calendar-selection-summary">${summaryHtml}</div>
+        <div class="calendar-nav-row">
+            <button class="calendar-nav-btn" onclick="calNav(-1, '${elId}')">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="calendar-month-label">${MONTHS[calViewMonth]} ${calViewYear}</span>
+            <button class="calendar-nav-btn" onclick="calNav(1, '${elId}')">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+        <div class="calendar-grid">${gridHtml}</div>
+        <div class="calendar-legend-row">
+            <span><span class="legend-dot-avail"></span> Available flight</span>
+            <span style="color:#0b46a0;font-weight:700;">Prices shown are simulated</span>
+        </div>
+        <button class="calendar-confirm-btn" ${confirmDisabled ? 'disabled' : ''} onclick="confirmCalendar('${elId}')">
+            Confirm Dates
+        </button>`;
+}
+
+function calNav(dir, elId) {
+    calViewMonth += dir;
+    if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+    if (calViewMonth < 0)  { calViewMonth = 11; calViewYear--; }
+    renderCalendar(elId);
+}
+
+function pickCalendarDay(year, month, day) {
+    const picked = new Date(year, month, day);
+    if (calMode === 'depart') {
+        selectedDepartDate = picked;
+        if (selectedReturnDate && selectedReturnDate <= picked) {
+            selectedReturnDate = null;
+            updateReturnDisplay();
+        }
+        updateDepartDisplay();
+        if (!document.getElementById('oneWayTrip').checked) {
+            calMode = 'return';
+        }
+        renderCalendar('departCalendar');
+    } else {
+        if (picked <= selectedDepartDate) return;
+        selectedReturnDate = picked;
+        updateReturnDisplay();
+        renderCalendar('returnCalendar');
+    }
+}
+
+function updateDepartDisplay() {
+    const el = document.getElementById('departDateDisplay');
+    if (selectedDepartDate) {
+        el.textContent = formatDate(selectedDepartDate);
+        el.classList.remove('placeholder-state');
+        document.getElementById('departDateVal').value = toISODate(selectedDepartDate);
+    }
+}
+
+function updateReturnDisplay() {
+    const el = document.getElementById('returnDateDisplay');
+    if (selectedReturnDate) {
+        el.textContent = formatDate(selectedReturnDate);
+        el.classList.remove('placeholder-state');
+        document.getElementById('returnDateVal').value = toISODate(selectedReturnDate);
+    } else {
+        el.textContent = 'Return';
+        el.classList.add('placeholder-state');
+        document.getElementById('returnDateVal').value = '';
+    }
+}
+
+function confirmCalendar(elId) {
+    document.getElementById(elId).classList.remove('open');
+}
+
+function formatDate(d) {
+    return DAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3);
+}
+
+function toISODate(d) {
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+}
+
+/* ========================================================================
+   ONE-WAY TOGGLE — hide/show return date
+======================================================================== */
+document.getElementById('oneWayTrip').addEventListener('change', function () {
+    document.getElementById('returnDateWrapper').classList.add('hidden-by-oneway');
+    selectedReturnDate = null;
+    updateReturnDisplay();
+});
+document.getElementById('returnTrip').addEventListener('change', function () {
+    document.getElementById('returnDateWrapper').classList.remove('hidden-by-oneway');
+});
+
+/* ========================================================================
+   PASSENGER COUNTER
+======================================================================== */
+const paxCounts = { adults: 1, children: 0, infants: 0 };
+
+function changePax(type, delta) {
+    paxCounts[type] = Math.max(0, paxCounts[type] + delta);
+    if (type === 'adults') paxCounts.adults = Math.max(1, paxCounts.adults);
+    updatePaxUI();
+}
+
+function updatePaxUI() {
+    ['adults', 'children', 'infants'].forEach(t => {
+        document.getElementById(t + 'Count').textContent = paxCounts[t];
+        document.getElementById(t + 'DecBtn').disabled = paxCounts[t] <= (t === 'adults' ? 1 : 0);
+    });
+    const parts = [];
+    if (paxCounts.adults)   parts.push(paxCounts.adults   + (paxCounts.adults === 1 ? ' Adult' : ' Adults'));
+    if (paxCounts.children) parts.push(paxCounts.children + (paxCounts.children === 1 ? ' Child' : ' Children'));
+    if (paxCounts.infants)  parts.push(paxCounts.infants  + (paxCounts.infants === 1 ? ' Infant' : ' Infants'));
+    document.getElementById('paxDisplay').textContent = parts.join(', ');
+}
+
+function togglePaxDropdown() {
+    const panel = document.getElementById('paxDropdown');
+    const isOpen = panel.classList.contains('open');
+    closeAllPanels();
+    if (!isOpen) panel.classList.add('open');
+}
+
+function closePaxDropdown() {
+    document.getElementById('paxDropdown').classList.remove('open');
+}
+
+/* ========================================================================
+   CLOSE ALL PANELS ON OUTSIDE CLICK
+======================================================================== */
+function closeAllPanels() {
+    closeCityDropdown('dep');
+    closeCityDropdown('arr');
+    closeAllCalendars();
+    closePaxDropdown();
+}
+
+document.addEventListener('click', function (e) {
+    const insideDep = document.getElementById('depWrapper').contains(e.target);
+    const insideArr = document.getElementById('arrWrapper').contains(e.target);
+    const insidePax = document.getElementById('paxWrapper').contains(e.target);
+
+    if (!insideDep) closeCityDropdown('dep');
+    if (!insideArr) closeCityDropdown('arr');
+    if (!insidePax) closePaxDropdown();
+});
+
+/* ========================================================================
+   MISC HELPERS
+======================================================================== */
+function scrollToMainContent() {
+    document.getElementById('mainContentGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleBookmark(btn) {
+    const icon = btn.querySelector('i');
+    if (icon.classList.contains('bi-bookmark-star')) {
+        icon.classList.replace('bi-bookmark-star', 'bi-bookmark-star-fill');
+        icon.classList.add('text-warning');
+    } else {
+        icon.classList.replace('bi-bookmark-star-fill', 'bi-bookmark-star');
+        icon.classList.remove('text-warning');
+    }
+}
+
+function triggerSubscribe(event, formEl) {
+    event.preventDefault();
+    const btn = formEl.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.style.backgroundColor = '#10b981';
+    btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> JOINED!';
+    setTimeout(() => {
+        formEl.reset();
+        btn.disabled = false;
+        btn.style.backgroundColor = '';
+        btn.innerHTML = 'SUBSCRIBE';
+    }, 2500);
+}
+
+/* ========================================================================
+   AUTH MODAL SYSTEM
+   - openAuthModal('login')    → fetches /users/login fragment, injects it
+   - openAuthModal('register') → fetches /users/register fragment, injects it
+   - closeAuthModal()          → hides modal and restores scroll
+   - switchAuthForm('register') / switchAuthForm('login') — called by the
+     injected "Don't have an account?" links so the user never leaves the page
+======================================================================== */
+
+// Cache fetched HTML so repeated opens don't re-fetch
+const _authCache = {};
+
+async function openAuthModal(type) {
+    const backdrop  = document.getElementById('authModalBackdrop');
+    const panel     = document.getElementById('authModalPanel');
+    const content   = document.getElementById('authModalContent');
+
+    // Show loading state immediately
+    content.innerHTML = `
+        <div id="authModalLoading">
+            <div class="auth-spinner"></div>
+            <span>Loading…</span>
+        </div>`;
+
+    // Activate overlay + panel (triggers CSS transitions)
+    backdrop.classList.add('active');
+    panel.classList.add('active');
+    document.body.style.overflow = 'hidden'; // prevent background scroll
+
+    const url = type === 'login' ? '/users/login' : '/users/register';
+
+    try {
+        let html;
+        if (_authCache[type]) {
+            html = _authCache[type];
+        } else {
+            const res = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            html = await res.text();
+            _authCache[type] = html;
+        }
+
+        // Parse the fetched document and extract just the .auth-container div
+        const parser   = new DOMParser();
+        const doc      = parser.parseFromString(html, 'text/html');
+        const authEl   = doc.querySelector('.auth-container');
+
+        if (!authEl) {
+            content.innerHTML = '<div style="padding:40px;color:#dc2626;">Could not load form. Please try again.</div>';
+            return;
+        }
+
+        // Inject the extracted fragment
+        content.innerHTML = '';
+
+        // Fetch style.css and inject it scoped to #authModalCard so it
+        // styles the modal form without polluting the main page layout
+        if (!document.getElementById('authModalStyleScope')) {
+            try {
+                const cssRes = await fetch('/css/style.css');
+                const cssText = await cssRes.text();
+                // Prefix every rule with #authModalCard to scope it
+                const scoped = cssText
+                    .replace(/\/\*[\s\S]*?\*\//g, '') // strip comments
+                    .split('}')
+                    .map(block => {
+                        const braceIdx = block.indexOf('{');
+                        if (braceIdx === -1) return block;
+                        const selectors = block.slice(0, braceIdx);
+                        const rules = block.slice(braceIdx);
+                        const prefixed = selectors.split(',').map(sel => {
+                            sel = sel.trim();
+                            if (!sel) return '';
+                            if (sel.startsWith('@') || sel.startsWith('#authModalCard')) return sel;
+                            // Skip body/html/* entirely — don't apply their rules to the card
+                            if (sel === 'body' || sel === 'html' || sel === '*') return '';
+                            return '#authModalCard ' + sel;
+                        }).filter(Boolean).join(', ');
+                        return prefixed + rules;
+                    }).join('}');
+                const styleEl = document.createElement('style');
+                styleEl.id = 'authModalStyleScope';
+                styleEl.textContent = scoped;
+                document.head.appendChild(styleEl);
+            } catch(e) {
+                console.warn('[AuthModal] Could not scope style.css:', e);
+            }
+        }
+
+        content.appendChild(authEl);
+
+        // If register form, convert to 2-step wizard
+        if (type === 'register') {
+            buildRegisterWizard(content);
+        }
+
+        // Re-wire the footer switch links so they swap form inside modal
+        // instead of navigating away
+        rewireAuthSwitchLinks(content, type);
+
+        // Re-execute any <script> tags that were inside the fetched fragment
+        // (needed for register.html's validation JS)
+        doc.querySelectorAll('script').forEach(originalScript => {
+            const s = document.createElement('script');
+            s.textContent = originalScript.textContent;
+            document.body.appendChild(s);
+            document.body.removeChild(s);
+        });
+
+    } catch (err) {
+        console.error('[AuthModal] Fetch error:', err);
+        content.innerHTML = `
+            <div style="padding:60px 40px;text-align:center;">
+                <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#f59e0b;"></i>
+                <p style="margin-top:16px;color:#64748b;font-size:0.95rem;">
+                    Unable to load the form right now.<br>
+                    <a href="${url}" style="color:#0b46a0;font-weight:600;">Click here to open it directly</a>.
+                </p>
+            </div>`;
+    }
+}
+
+/**
+ * Converts the injected register form into a 2-step wizard.
+ * Step 1: Full Name, Username, Email, Password, Confirm Password
+ * Step 2: Country, Mobile, Gender, Date of Birth
+ */
+function buildRegisterWizard(container) {
+    const form = container.querySelector('#registrationForm');
+    if (!form) return;
+
+    const groups = Array.from(form.querySelectorAll('.form-group'));
+    // Map fields by their label text
+    const byLabel = {};
+    groups.forEach(g => {
+        const lbl = g.querySelector('label');
+        if (lbl) byLabel[lbl.textContent.trim()] = g;
+    });
+
+    const step1Fields = ['Full Name', 'Username', 'Email Address', 'Password', 'Confirm Password'];
+    const step2Fields = ['Country', 'Mobile Number', 'Gender', 'Date of Birth'];
+
+    // Hide original submit button — we'll add our own per step
+    const origSubmit = form.querySelector('button[type="submit"]');
+    if (origSubmit) origSubmit.style.display = 'none';
+
+    // Wrap step 1 fields
+    const panel1 = document.createElement('div');
+    panel1.className = 'reg-step-panel active';
+    panel1.id = 'regStep1';
+
+    // Wrap step 2 fields
+    const panel2 = document.createElement('div');
+    panel2.className = 'reg-step-panel';
+    panel2.id = 'regStep2';
+
+    step1Fields.forEach(name => { if (byLabel[name]) panel1.appendChild(byLabel[name]); });
+    step2Fields.forEach(name => { if (byLabel[name]) panel2.appendChild(byLabel[name]); });
+
+    // Step indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'reg-step-indicator';
+    indicator.innerHTML = `
+        <div class="reg-step-dot active" id="regDot1">1</div>
+        <div class="reg-step-line" id="regLine1"></div>
+        <div class="reg-step-dot" id="regDot2">2</div>`;
+
+    // Next button for step 1
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn-reg-next';
+    nextBtn.textContent = 'Next →';
+    const nextWrap = document.createElement('div');
+    nextWrap.className = 'reg-nav-btns';
+    nextWrap.appendChild(nextBtn);
+    panel1.appendChild(nextWrap);
+
+    // Back + Submit buttons for step 2
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'btn-reg-back';
+    backBtn.textContent = '← Back';
+    const submitBtn = document.createElement('button');
+    submitBtn.type = 'submit';
+    submitBtn.className = 'btn-reg-next';
+    submitBtn.textContent = 'Register';
+    const backWrap = document.createElement('div');
+    backWrap.className = 'reg-nav-btns';
+    backWrap.appendChild(backBtn);
+    backWrap.appendChild(submitBtn);
+    panel2.appendChild(backWrap);
+
+    // Insert everything into the form before the original submit
+    form.insertBefore(indicator, origSubmit);
+    form.insertBefore(panel1, origSubmit);
+    form.insertBefore(panel2, origSubmit);
+
+    // Step 1 → Step 2
+    nextBtn.addEventListener('click', function() {
+        // Validate step 1 fields
+        const step1Inputs = panel1.querySelectorAll('input');
+        let valid = true;
+        step1Inputs.forEach(inp => { if (!inp.checkValidity()) { inp.reportValidity(); valid = false; } });
+
+        // Extra: password match check
+        const pw = panel1.querySelector('#password');
+        const cpw = panel1.querySelector('#confirmPassword');
+        if (pw && cpw && pw.value !== cpw.value) {
+            cpw.setCustomValidity('Passwords do not match.');
+            cpw.reportValidity();
+            valid = false;
+        } else if (cpw) {
+            cpw.setCustomValidity('');
+        }
+
+        if (!valid) return;
+
+        panel1.classList.remove('active');
+        panel2.classList.add('active');
+        document.getElementById('regDot1').className = 'reg-step-dot done';
+        document.getElementById('regDot1').textContent = '✓';
+        document.getElementById('regLine1').className = 'reg-step-line done';
+        document.getElementById('regDot2').className = 'reg-step-dot active';
+
+        // Scroll form wrapper to top
+        const wrapper = container.querySelector('.auth-form-wrapper');
+        if (wrapper) wrapper.scrollTop = 0;
+    });
+
+    // Step 2 → Step 1
+    backBtn.addEventListener('click', function() {
+        panel2.classList.remove('active');
+        panel1.classList.add('active');
+        document.getElementById('regDot1').className = 'reg-step-dot active';
+        document.getElementById('regDot1').textContent = '1';
+        document.getElementById('regLine1').className = 'reg-step-line';
+        document.getElementById('regDot2').className = 'reg-step-dot';
+        const wrapper = container.querySelector('.auth-form-wrapper');
+        if (wrapper) wrapper.scrollTop = 0;
+    });
+}
+
+function closeAuthModal() {
+    const backdrop = document.getElementById('authModalBackdrop');
+    const panel    = document.getElementById('authModalPanel');
+
+    // Reverse the CSS transitions
+    backdrop.classList.remove('active');
+    panel.classList.remove('active');
+    document.body.style.overflow = '';
+
+    // Clear content after transition ends (300ms)
+    setTimeout(() => {
+        document.getElementById('authModalContent').innerHTML = `
+            <div id="authModalLoading">
+                <div class="auth-spinner"></div>
+                <span>Loading…</span>
+            </div>`;
+        // Remove cached scoped style so it's rebuilt cleanly on next open
+        const scopeStyle = document.getElementById('authModalStyleScope');
+        if (scopeStyle) scopeStyle.remove();
+    }, 350);
+}
+
+/**
+ * After injecting auth HTML, rewire the "Register here" / "Login" footer
+ * links so they switch the modal content in-place instead of navigating.
+ */
+function rewireAuthSwitchLinks(container, currentType) {
+    container.querySelectorAll('.auth-footer-link').forEach(link => {
+        const href = link.getAttribute('href') || '';
+        // Identify it as a switch link (not the logout link)
+        if (link.classList.contains('logout-link')) return;
+
+        if (currentType === 'login' && (href.includes('register') || link.textContent.toLowerCase().includes('register'))) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                openAuthModal('register');
+            });
+        } else if (currentType === 'register' && (href.includes('login') || link.textContent.toLowerCase().includes('login'))) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                openAuthModal('login');
+            });
+        }
+    });
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        const panel = document.getElementById('authModalPanel');
+        if (panel.classList.contains('active')) closeAuthModal();
+    }
+});
+
+/* ========================================================================
+   FEATURE 5 — AUTH-AWARE SEARCH FLIGHTS
+   Builds a /bookingform URL with ?source=…&destination=… query params
+   from whatever the user has selected in the search form, then:
+     • If logged in  → redirect immediately (Scenario A)
+     • If logged out → save cities to sessionStorage as myfly_pending_cities,
+       then open the login modal. The login form's action is patched to include
+       ?next=/bookingform so Spring Security redirects there after auth.
+       When /bookingform loads it reads myfly_pending_cities and auto-fills.
+======================================================================== */
+function _buildBookingUrl() {
+    const src = selectedDep ? selectedDep.city : '';
+    const dst = selectedArr ? selectedArr.city : '';
+    let url = '/bookingform';
+    const params = [];
+    if (src) params.push('source=' + encodeURIComponent(src));
+    if (dst) params.push('destination=' + encodeURIComponent(dst));
+    if (params.length) url += '?' + params.join('&');
+    return url;
+}
+
+function handleSearchFlights() {
+    const btn      = document.getElementById('searchFlightsBtn');
+    const loggedIn = btn && btn.getAttribute('data-logged-in') === 'true';
+    const bookingUrl = _buildBookingUrl();
+
+    if (loggedIn) {
+        // Scenario A: user is already authenticated → go straight to booking form
+        window.location.href = bookingUrl;
+    } else {
+        // Scenario B: not logged in →
+        //   1. Save the selected cities to sessionStorage so bookingform can read them
+        //   2. Open the auth modal
+        //   3. Patch the login form action to redirect to /bookingform after login
+        const src = selectedDep ? selectedDep.city : '';
+        const dst = selectedArr ? selectedArr.city : '';
+        try {
+            sessionStorage.setItem('myfly_pending_cities', JSON.stringify({ source: src, destination: dst }));
+        } catch(e) {}
+
+        openAuthModal('login');
+
+        // Patch the login form action once the modal injects it
+        const content = document.getElementById('authModalContent');
+        const observer = new MutationObserver(function() {
+            const form = content.querySelector('form');
+            if (form) {
+                observer.disconnect();
+                try {
+                    // Target: /bookingform with cities in query params
+                    const redirectTarget = bookingUrl;
+                    let action = form.getAttribute('action') || '/users/login';
+                    if (!action.includes('next=')) {
+                        const sep = action.includes('?') ? '&' : '?';
+                        form.setAttribute('action', action + sep + 'next=' + encodeURIComponent(redirectTarget));
+                    }
+                } catch(e) {}
+            }
+        });
+        observer.observe(content, { childList: true, subtree: true });
+    }
+}
+
+/* On page load: if the user just authenticated via Spring Security default redirect
+   (back to /useroptions or /) AND we have pending cities, forward to bookingform. */
+(function checkPostLoginRedirect() {
+    try {
+        const pending  = JSON.parse(sessionStorage.getItem('myfly_pending_cities') || 'null');
+        const btn      = document.getElementById('searchFlightsBtn');
+        const loggedIn = btn && btn.getAttribute('data-logged-in') === 'true';
+        if (pending && loggedIn) {
+            // Don't remove from sessionStorage here — bookingform.html will consume it
+            const params = [];
+            if (pending.source)      params.push('source='      + encodeURIComponent(pending.source));
+            if (pending.destination) params.push('destination=' + encodeURIComponent(pending.destination));
+            const dest = '/bookingform' + (params.length ? '?' + params.join('&') : '');
+            // Remove before redirect to prevent loop
+            sessionStorage.removeItem('myfly_pending_cities');
+            window.location.href = dest;
+        }
+    } catch(e) {}
+})();
+</script>
+<script>
+/* ── FIX: USER-SCOPED localStorage KEYS ─────────────────────────
+   Read the current user's username from #appAuthState (injected by Thymeleaf).
+   All localStorage keys are prefixed with uid_<username>_ so that saved trips
+   from one account are invisible to other accounts on the same browser.
+──────────────────────────────────────────────────────────────── */
+(function() {
+  // authEl may not exist yet at parse time; resolve lazily inside functions.
+  window._lsUoKey = function(base) {
+    var authEl = document.getElementById('appAuthState');
+    var uid = (authEl && authEl.getAttribute('data-user-id')) ? authEl.getAttribute('data-user-id') : 'guest';
+    return 'uid_' + uid + '_' + base;
+  };
+})();
+
+/* ── GETAWAY BOOKMARK SYSTEM WITH IN-PAGE TOAST ────────────────── */
+function saveTrip(btnElement, destination, price, imageUrl) {
+  // --- Auth guard: block anonymous users from saving trips ---
+  var authEl = document.getElementById('appAuthState');
+  var isLoggedIn = authEl && authEl.getAttribute('data-logged-in') === 'true';
+  if (!isLoggedIn) {
+    showUserOptionsToast('🔒 Log in to save trips to your profile.', true);
+    return;
+  }
+
+  var trips = [];
+  try {
+    trips = JSON.parse(localStorage.getItem(_lsUoKey('myfly_saved_trips')) || '[]');
+  } catch (e) {
+    trips = [];
+  }
+
+  // Check for duplicates
+  if (trips.some(function(t) { return t.destination === destination; })) {
+    showUserOptionsToast(destination + ' is already saved!', true);
+    return;
+  }
+
+  // Exact data properties expected by profile.html layout mapping
+  var newTrip = {
+    destination: destination,
+    price: price,
+    note: 'Saved from Inspirational Getaways',
+    image: imageUrl
+  };
+
+  trips.push(newTrip);
+  localStorage.setItem(_lsUoKey('myfly_saved_trips'), JSON.stringify(trips));
+
+  // Change the color and style of the star icon instantly
+  var icon = btnElement.querySelector('i');
+  if (icon) {
+    icon.className = 'bi bi-bookmark-star-fill';
+    btnElement.style.color = '#ffc107'; // Makes the star bright yellow
+  }
+
+  // Trigger the clean, in-page custom toast message box
+  showUserOptionsToast('✓ ' + destination + ' saved to your profile!', false);
+}
+
+// Dedicated dynamic toast generator for useroptions page
+function showUserOptionsToast(msg, isErr) {
+  // Find or create toast element
+  var t = document.getElementById('userOptionsToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'userOptionsToast';
+    t.style.position = 'fixed';
+    t.style.bottom = '24px';
+    t.style.right = '24px';
+    t.style.padding = '14px 24px';
+    t.style.borderRadius = '8px';
+    t.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)';
+    t.style.fontFamily = "'Inter', sans-serif";
+    t.style.fontSize = '14px';
+    t.style.fontWeight = '600';
+    t.style.zIndex = '10050';
+    t.style.color = '#fff';
+    t.style.display = 'flex';
+    t.style.alignItems = 'center';
+    t.style.gap = '10px';
+    t.style.transition = 'all 0.3s ease';
+    document.body.appendChild(t);
+  }
+
+  // Set message text content
+  t.innerHTML = isErr 
+    ? '<i class="bi bi-exclamation-circle-fill"></i><span>' + msg + '</span>'
+    : '<i class="bi bi-check-circle-fill"></i><span>' + msg + '</span>';
+
+  // Apply contextual background colors matching your design rules
+  t.style.backgroundColor = isErr ? '#dc3545' : '#10b981';
+  
+  // Show animation state
+  t.style.opacity = '1';
+  t.style.transform = 'translateY(0)';
+
+  // Auto-dismiss after 3.5 seconds
+  setTimeout(function() {
+    t.style.opacity = '0';
+    t.style.transform = 'translateY(20px)';
+  }, 3500);
+}
+
+// Optional: Automatically keep stars yellow on page refresh if trip is already saved
+document.addEventListener("DOMContentLoaded", function() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(_lsUoKey('myfly_saved_trips')) || '[]');
+    document.querySelectorAll('.btn-getaway-bookmark').forEach(function(btn) {
+      var onclickText = btn.getAttribute('onclick') || '';
+      saved.forEach(function(trip) {
+        if (onclickText.includes("'" + trip.destination + "'")) {
+          var icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = 'bi bi-bookmark-star-fill';
+            btn.style.color = '#ffc107';
+          }
+        }
+      });
+    });
+  } catch(e) {}
+});
+</script>
+</body>
+</html>

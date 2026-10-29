@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFly - Registration</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="auth-sidebar">
+            <div class="auth-sidebar-content">
+                <h1>My<span>Fly</span></h1>
+                <p>Create a customer profile to start locking down flexible regional flight itineraries, encrypted financial transactions, and 24/7 dedicated assistance lines.</p>
+            </div>
+        </div>
+
+        <div class="auth-form-wrapper">
+            <div class="back-btn-container">
+                <a href="/users/login" class="back-btn">
+                    <i class="bi bi-arrow-left"></i> Back to Login
+                </a>
+            </div>
+
+            <h2>User Registration</h2>
+
+            <div id="js-error-banner" class="message-banner error" style="display: none;"></div>
+
+            <div th:if="${error}" class="message-banner error">
+                <p th:text="${error}"></p>
+            </div>
+            <div th:if="${success}" class="message-banner success">
+                <p th:text="${success}"></p>
+            </div>
+
+            <form id="registrationForm" th:action="@{/users/register}" th:object="${user}" method="post" onsubmit="return validateForm()">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" th:field="*{fullName}" placeholder="John Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" th:field="*{username}" placeholder="johndoe12" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" th:field="*{email}" placeholder="name@gmail.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" th:field="*{password}" placeholder="••••••••" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="confirmPassword" th:field="*{confirmPassword}" placeholder="••••••••" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Country</label>
+                    <select id="countrySelect" th:field="*{country}" onchange="updatePhonePrefixAndStyle()" required 
+                            style="width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; color: #0f172a; background-color: #f8fafc;">
+                        <option value="" disabled selected>Select your country</option>
+                        <option value="Albania" data-prefix="+355" data-placeholder="6X XXX XXXX">Albania (+355)</option>
+                        <option value="Italy" data-prefix="+39" data-placeholder="3XX XXX XXXX">Italy (+39)</option>
+                        <option value="Germany" data-prefix="+49" data-placeholder="1XX XXXXXXXX">Germany (+49)</option>
+                        <option value="United Kingdom" data-prefix="+44" data-placeholder="7XXX XXXXXX">United Kingdom (+44)</option>
+                        <option value="United States" data-prefix="+1" data-placeholder="(555) 000-0000">United States (+1)</option>
+                        <option value="France" data-prefix="+33" data-placeholder="X XX XX XX XX">France (+33)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" id="mobile" th:field="*{mobile}" placeholder="Select country first" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gender</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" th:field="*{gender}" value="Male">
+                            <span>Male</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" th:field="*{gender}" value="Female">
+                            <span>Female</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    <input type="date" id="dob" th:field="*{dob}" required>
+                </div>
+
+                <button type="submit">Register</button>
+            </form>
+
+            
+            <a th:href="@{/login}" class="auth-footer-link">Already have an account? Login</a>
+        </div>
+    </div>
+
+    <script>
+        // Force the Calendar Picker to disallow anyone under 18 years old
+        document.addEventListener("DOMContentLoaded", function() {
+            const dobInput = document.getElementById("dob");
+            if (!dobInput) return;
+            const today = new Date();
+            const year18 = today.getFullYear() - 18;
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dobInput.setAttribute("max", `${year18}-${month}-${day}`);
+        });
+
+       
+        function updatePhonePrefixAndStyle() {
+            const countrySelect = document.getElementById("countrySelect");
+            const mobileInput = document.getElementById("mobile");
+            if (!countrySelect || !mobileInput) return;
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            
+            const prefix = selectedOption.getAttribute("data-prefix");
+            const stylePlaceholder = selectedOption.getAttribute("data-placeholder");
+            
+            if (prefix && stylePlaceholder) {
+                mobileInput.value = prefix + " ";
+                mobileInput.placeholder = prefix + " " + stylePlaceholder;
+                mobileInput.focus();
+            }
+        }
+
+        // Complete data validation upon submission 
+        function validateForm() {
+            const errorBanner = document.getElementById("js-error-banner");
+            const emailEl = document.getElementById("email");
+            const passwordEl = document.getElementById("password");
+            const confirmPasswordEl = document.getElementById("confirmPassword");
+            const dobEl = document.getElementById("dob");
+
+            if (!errorBanner || !emailEl || !passwordEl || !confirmPasswordEl || !dobEl) return true;
+
+            const email = emailEl.value.trim();
+            const password = passwordEl.value;
+            const confirmPassword = confirmPasswordEl.value;
+            const dob = new Date(dobEl.value);
+            const today = new Date();
+            
+            errorBanner.style.display = "none";
+            errorBanner.innerHTML = "";
+
+            // Email Regex Domain Verification
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|outlook\.com)$/i;
+            if (!emailRegex.test(email)) {
+                showError("Registration allowed only with standard @gmail.com, @yahoo.com, or @outlook.com emails.");
+                return false;
+            }
+
+            // Under 18 Age Calculation fallback
+            let age = today.getFullYear() - dob.getFullYear();
+            const m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                showError("Access Denied: You must be 18 years or older to register an account.");
+                return false;
+            }
+
+            // Match Passwords Check
+            if (password !== confirmPassword) {
+                showError("Passwords do not match. Please re-enter.");
+                return false;
+            }
+
+            return true;
+        }
+
+        function showError(message) {
+            const errorBanner = document.getElementById("js-error-banner");
+            if (!errorBanner) return;
+            errorBanner.innerHTML = message;
+            errorBanner.style.display = "block";
+            // Scroll within the modal card instead of the window
+            const wrapper = errorBanner.closest('.auth-form-wrapper');
+            if (wrapper) {
+                wrapper.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        
+        (function() {
+            const dobInput = document.getElementById("dob");
+            if (dobInput) {
+                const today = new Date();
+                const year18 = today.getFullYear() - 18;
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                dobInput.setAttribute("max", `${year18}-${month}-${day}`);
+            }
+        })();
+    </script>
+</body>
+</html>

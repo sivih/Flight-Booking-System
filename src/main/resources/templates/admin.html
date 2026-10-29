@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFlight Admin Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-row">
+                    <span class="brand-logo-icon">🛬</span>
+                    <h2>MyFly</h2>
+                </div>
+                <p class="admin-badge">Flight Control System</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a th:href="@{/admin/dashboard}" th:classappend="${currentTab == 'overview'} ? 'active' : ''" class="menu-item">
+                    <span class="icon">📊</span> Overview Dashboard
+                </a>
+                <a th:href="@{/admin/flights}" th:classappend="${currentTab == 'flights' || currentTab == 'addFlight' || currentTab == 'editFlight'} ? 'active' : ''" class="menu-item">
+                    <span class="icon">✈️</span> Flight Operations
+                </a>
+                <a th:href="@{/admin/bookings}" th:classappend="${currentTab == 'bookings'} ? 'active' : ''" class="menu-item">
+                    <span class="icon">📄</span> Ticket Bookings
+                </a>
+                <a th:href="@{/admin/users}" th:classappend="${currentTab == 'users'} ? 'active' : ''" class="menu-item">
+                    <span class="icon">👥</span> User Directory
+                </a>
+                
+                <div class="menu-divider"></div>
+                
+                <a th:href="@{/}" class="menu-item logout-link">
+                    <span class="icon">🚪</span> Exit Terminal
+                </a>
+            </nav>
+        </aside>
+
+        <main class="dashboard-content">
+            
+            <header class="content-top-bar">
+                <div>
+                    <h1 th:text="${currentTab == 'addFlight' || currentTab == 'editFlight' ? 'FLIGHT FORM' : #strings.toUpperCase(currentTab)} + ' TERMINAL'">OVERVIEW TERMINAL</h1>
+                    <p class="subtitle">Real-time database transactional metrics tracking management layer.</p>
+                </div>
+                <div class="profile-pill">
+                    <span class="avatar">Hi, System Admin ⚙️</span>
+                </div>
+            </header>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="card-icon-wrapper blue-theme">✈️</div>
+                    <div class="card-data">
+                        <h3>Total Active Flights</h3>
+                        <p class="metric-number" th:text="${totalFlights}">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="card-icon-wrapper green-theme">📄</div>
+                    <div class="card-data">
+                        <h3>System Bookings</h3>
+                        <p class="metric-number" th:text="${totalBookings}">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="card-icon-wrapper slate-theme">👥</div>
+                    <div class="card-data">
+                        <h3>Registered Users</h3>
+                        <p class="metric-number" th:text="${totalUsers}">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="view-viewport-box" th:switch="${currentTab}">
+                
+                <div th:case="'overview'" class="fade-in-card overview-graphic-workspace">
+                    <div class="graphic-card-header">
+                        <h2>System Traffic Distribution Metrics</h2>
+                        <p>Visual presentation representation layer data maps</p>
+                    </div>
+                    <div class="mock-chart-container">
+                        <div class="chart-bar-pillar" style="height: 45%;"><span class="bar-label">Jan</span></div>
+                        <div class="chart-bar-pillar" style="height: 65%;"><span class="bar-label">Feb</span></div>
+                        <div class="chart-bar-pillar" style="height: 55%;"><span class="bar-label">Mar</span></div>
+                        <div class="chart-bar-pillar" style="height: 85%;" id="peak-pillar"><span class="bar-label">Apr</span></div>
+                        <div class="chart-bar-pillar" style="height: 70%;"><span class="bar-label">May</span></div>
+                    </div>
+                    <div class="chart-legend-indicator">
+                        <span class="legend-dot"></span> Active Monthly Flight Booking Indexes (Live Update Flow)
+                    </div>
+                </div>
+
+                <div th:case="'flights'" class="fade-in-card">
+                    <div class="table-header-action-row">
+                        <h2>Flight Management Tables</h2>
+                        <a th:href="@{/admin/flights/add}" class="action-btn-link">+ Create New Flight Row</a>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Flight ID</th>
+                                    <th>Name No</th>
+                                    <th>Departure Source</th>
+                                    <th>Destination Point</th>
+                                    <th>Departure Date</th>
+                                    <th>Ticket Price</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="flight : ${flights}">
+                                    <td th:text="${flight.id}">1</td>
+                                    <td th:text="${flight.flightName}">AZA203</td>
+                                    <td th:text="${flight.source}">Rome</td>
+                                    <td th:text="${flight.destination}">Paris</td>
+                                    <td th:text="${flight.dateDeparture}">2026-07-20</td>
+                                    <td th:text="'€' + ${flight.price}">€299</td>
+                                    <td>
+                                        <div class="table-action-button-group">
+                                            <button class="btn-ui-action edit-btn" th:data-id="${flight.id}" onclick="triggerCustomModal('edit', this.getAttribute('data-id'))">✏️ Edit</button>
+                                            <button class="btn-ui-action delete-btn" th:data-id="${flight.id}" onclick="triggerCustomModal('delete', this.getAttribute('data-id'))">🗑️ Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(flights)}">
+                                    <td colspan="7" class="empty-msg">No flight rows initialized in relational repository tables.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:case="${currentTab == 'addFlight' || currentTab == 'editFlight' ? currentTab : 'FORM_VIEW_GUARD'}" class="fade-in-card internal-form-workspace">
+                    <div class="form-header-row">
+                        <h2 th:text="${flight != null && flight.id == 0} ? 'Add New Flight Properties' : 'Modify Flight System Entry'">Flight Parameters</h2>
+                        <p>Configure operational system variables and layout destination coordinates directly inside your terminal.</p>
+                    </div>
+                    
+                    <form th:action="@{/admin/flights/save}" th:object="${flight}" method="post" class="integrated-dashboard-form" th:if="${flight != null}">
+                        <input type="hidden" th:field="*{id}" />
+
+                        <div class="form-input-grid">
+                            <div class="input-field-group">
+                                <label>Flight Name / Number</label>
+                                <input type="text" th:field="*{flightName}" placeholder="e.g. A12349" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Departure Source</label>
+                                <input type="text" th:field="*{source}" placeholder="e.g. Tirana" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Destination Point</label>
+                                <input type="text" th:field="*{destination}" placeholder="e.g. Barcelona" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Departure Time</label>
+                                <input type="time" th:field="*{time}" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Departure Date</label>
+                                <input type="date" th:field="*{dateDeparture}" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Return Date</label>
+                                <input type="date" th:field="*{returnDate}" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Total Capacity / Passenger Count</label>
+                                <input type="number" th:field="*{passengerCount}" min="1" placeholder="100" required />
+                            </div>
+
+                            <div class="input-field-group">
+                                <label>Base Ticket Price (€)</label>
+                                <input type="number" th:field="*{price}" step="0.01" min="0" placeholder="0.00" required />
+                            </div>
+                        </div>
+
+                        <div class="integrated-form-footer">
+                            <a th:href="@{/admin/flights}" class="form-btn-link secondary">Cancel Operation</a>
+                            <button type="submit" class="form-btn-submit primary" th:text="${flight.id == 0} ? 'Save Flight Row' : 'Update Flight Row'">Submit Parameters</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:case="'bookings'" class="fade-in-card">
+                    <div class="table-header-action-row">
+                        <h2>User Bookings Information</h2>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>User ID</th>
+                                    <th>Username</th>
+                                    <th>Source</th>
+                                    <th>Destination</th>
+                                    <th>Departure</th>
+                                    <th>Return</th>
+                                    <th>Class</th>
+                                    <th>Tickets</th>
+                                    <th>Total Price</th>
+                                    <th>Payment</th>
+                                    <th>Confirmation</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="booking : ${bookings}" th:id="'booking-row-' + ${booking.bookingId}">
+                                    <td class="fw-medium text-muted" th:text="${booking.bookingId}">4</td>
+                                    <td class="fw-medium" th:text="${booking.userId}">17</td>
+                                    <td class="fw-bold" th:text="${booking.username}">sivjena.h</td>
+                                    <td th:text="${booking.source}">Berlin</td>
+                                    <td th:text="${booking.destination}">Rome</td>
+                                    <td class="date-col" th:text="${booking.departureDate}">2026-06-02</td>
+                                    <td class="date-col" th:text="${booking.returnDate}">2026-06-02</td>
+                                    <td>
+                                        <span class="status-badge" 
+                                              th:classappend="${booking.flightClass == 'First Class' || booking.flightClass == 'First'} ? 'badge-confirmed' : (${booking.flightClass == 'Business'} ? 'badge-business' : 'badge-pending')"
+                                              th:text="${booking.flightClass}">Economy</span>
+                                    </td>
+                                    <td class="text-center" th:text="${booking.tickets}">2</td>
+                                    <td class="fw-semibold color-primary" th:text="'€' + ${booking.totalPrice}">€600.0</td>
+                                    <td th:text="${booking.paymentMethod}">Credit Card</td>
+                                    <td>
+                                        <span class="status-badge" 
+                                              th:classappend="${booking.confirmation == 'Confirmed'} ? 'badge-confirmed' : 'badge-pending'" 
+                                              th:text="${booking.confirmation != null && booking.confirmation != ''} ? ${booking.confirmation} : 'Pending'">
+                                            Pending
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="table-action-button-group">
+                                            <button type="button" class="btn-ui-action toggle-btn" th:data-id="${booking.bookingId}" onclick="triggerBookingEditModal(this.getAttribute('data-id'))">Update</button>
+                                            <button type="button" class="btn-ui-action delete-btn" th:data-id="${booking.bookingId}" onclick="triggerBookingDeleteModal(this.getAttribute('data-id'))">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(bookings)}">
+                                    <td colspan="13" class="empty-msg">No tracking booking invoices saved to data layers yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div th:case="'users'" class="fade-in-card">
+                    <div class="table-header-action-row">
+                        <h2>User Authentication Accounts Index</h2>
+                    </div>
+                    <div class="table-scroll-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User Index ID</th>
+                                    <th>Profile Username</th>
+                                    <th>Email Handle Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="user : ${users}">
+                                    <td th:text="${user.id}">1</td>
+                                    <td th:text="${user.username}">traveler99</td>
+                                    <td th:text="${user.email}">travel@world.com</td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(users)}">
+                                    <td colspan="3" class="empty-msg">No client credential accounts registered in backend systems.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div class="app-modal-overlay" id="custom-action-modal">
+        <div class="app-modal-box">
+            <div class="modal-icon-alert">⚠️</div>
+            <h3 id="modal-title-text">System Action Request</h3>
+            <p id="modal-body-text">Are you completely sure you want to perform this structural database record operation?</p>
+            <div class="modal-buttons-footer">
+                <button class="modal-btn cancel" onclick="closeCustomModal()">Cancel Action</button>
+                <a href="#" class="modal-btn confirm" id="modal-execute-link">Confirm Proceed</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let activeRowId = null;
+
+        function saveScrollAndTarget(recordId, isBooking = true) {
+            activeRowId = isBooking ? 'booking-row-' + recordId : null;
+            localStorage.setItem('admin_scroll_pos', window.scrollY);
+            if (activeRowId) {
+                localStorage.setItem('admin_active_row', activeRowId);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const preservedScroll = localStorage.getItem('admin_scroll_pos');
+            const targetedRow = localStorage.getItem('admin_active_row');
+            
+            if (preservedScroll !== null) {
+                window.scrollTo(0, parseInt(preservedScroll));
+                localStorage.removeItem('admin_scroll_pos');
+            }
+            
+            if (targetedRow) {
+                const element = document.getElementById(targetedRow);
+                if (element) {
+                    element.classList.add('highlighted-row-transaction');
+                    setTimeout(() => {
+                        element.classList.remove('highlighted-row-transaction');
+                    }, 4000);
+                }
+                localStorage.removeItem('admin_active_row');
+            }
+        });
+
+        function triggerCustomModal(actionType, recordId) {
+            const modal = document.getElementById('custom-action-modal');
+            const title = document.getElementById('modal-title-text');
+            const body = document.getElementById('modal-body-text');
+            const executeLink = document.getElementById('modal-execute-link');
+            
+            saveScrollAndTarget(recordId, false);
+
+            if (actionType === 'edit') {
+                title.textContent = "Confirm Row Modification";
+                body.textContent = "You are requesting to enter editing modification templates for Flight Record entry ID: " + recordId + ". Continue?";
+                executeLink.href = "/admin/flights/edit/" + recordId;
+                executeLink.className = "modal-btn confirm edit-theme-btn";
+            } else if (actionType === 'delete') {
+                title.textContent = "Confirm Permanent Deletion";
+                body.textContent = "Warning! You are executing a destructive delete on Flight ID " + recordId + ". This operation cannot be undone.";
+                executeLink.href = "/admin/flights/delete/" + recordId;
+                executeLink.className = "modal-btn confirm delete-theme-btn";
+            }
+            
+            modal.classList.add('show-active');
+        }
+
+        function triggerBookingEditModal(bookingId) {
+            const modal = document.getElementById('custom-action-modal');
+            const title = document.getElementById('modal-title-text');
+            const body = document.getElementById('modal-body-text');
+            const executeLink = document.getElementById('modal-execute-link');
+            
+            saveScrollAndTarget(bookingId, true);
+
+            title.textContent = "Confirm Ticket Update";
+            body.textContent = "Open configuration control values for modification rules on Booking ID: " + bookingId + "?";
+            executeLink.href = "/admin/bookings/edit/" + bookingId;
+            executeLink.className = "modal-btn confirm edit-theme-btn";
+            
+            modal.classList.add('show-active');
+        }
+
+        function triggerBookingDeleteModal(bookingId) {
+            const modal = document.getElementById('custom-action-modal');
+            const title = document.getElementById('modal-title-text');
+            const body = document.getElementById('modal-body-text');
+            const executeLink = document.getElementById('modal-execute-link');
+            
+            saveScrollAndTarget(bookingId, true);
+
+            title.textContent = "Confirm Ticket Cancellation";
+            body.textContent = "Warning! You are executing an irreversible transaction cancellation request on Booking Record Index ID: " + bookingId + ". Proceed?";
+            executeLink.href = "/admin/bookings/delete/" + bookingId;
+            executeLink.className = "modal-btn confirm delete-theme-btn";
+            
+            modal.classList.add('show-active');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('custom-action-modal').classList.remove('show-active');
+        }
+    </script>
+</body>
+</html>

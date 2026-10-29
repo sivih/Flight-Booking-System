@@ -1,0 +1,166 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; 
+    color: #334155;
+    padding: 40px 20px;
+}
+
+.table-wrapper {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+/* Header Layout Setup */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+h1 {
+    color: #0f172a; 
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+
+.table-container {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+thead {
+    background-color: #0f172a; 
+    color: #ffffff;
+}
+
+thead th {
+    padding: 16px 14px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+tbody td {
+    padding: 16px 14px;
+    color: #475569;
+    vertical-align: middle;
+}
+
+
+.fw-medium { font-weight: 500; }
+.fw-bold { font-weight: 700; color: #0f172a; }
+.text-muted { color: #94a3b8; }
+.text-center { text-align: center; }
+
+.date-col {
+    min-width: 115px;
+    white-space: nowrap;
+}
+
+.email-col {
+    color: #2563eb; 
+}
+
+.mono-text {
+    font-family: monospace;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+
+.password-mask {
+    font-family: monospace;
+    letter-spacing: 0.02em;
+    color: #64748b;
+}
+
+
+.gender-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.gender-badge.male {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.gender-badge.female {
+    background-color: #fdf2f8;
+    color: #be185d;
+    border: 1px solid #fbcfe8;
+}
+
+
+.btn {
+    font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary-nav {
+    background-color: transparent;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.btn-secondary-nav:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+
+.btn-secondary-nav:active {
+    transform: translateY(0);
+}
+
+
+@media (max-width: 1200px) {
+    .table-container {
+        overflow-x: auto;
+    }
+}

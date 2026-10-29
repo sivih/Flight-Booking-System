@@ -1,0 +1,416 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+ 
+    background: linear-gradient(135deg, rgba(240, 244, 248, 0.9), rgba(217, 227, 237, 0.9)), 
+                url('/images/login-bg.jpg') no-repeat center center fixed;
+    background-size: cover;
+    padding: 20px;
+}
+
+
+#authModalCard .auth-container {
+    min-height: unset;
+    display: flex;
+    background: #ffffff;
+    padding: 0;
+}
+
+/* ==========================================================================
+   AUTHENTICATION LAYOUT CORE
+   ========================================================================== */
+.auth-container {
+    display: flex;
+    width: 100%;
+    max-width: 1000px;
+    min-height: 650px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08), 0 5px 15px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+
+/* Decorative Info Sidebar (Left side) */
+.auth-sidebar {
+    flex: 1;
+    background: linear-gradient(135deg, #0b46a0, #073173);
+    padding: 50px;
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative subtle circles in the background */
+.auth-sidebar::before {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.03);
+    top: -50px;
+    left: -50px;
+}
+
+.auth-sidebar-content {
+    position: relative;
+    z-index: 2;
+    max-width: 360px;
+}
+
+.auth-sidebar h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+}
+
+.auth-sidebar h1 span {
+    color:  #ffffff; 
+}
+
+.auth-sidebar p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    font-weight: 400;
+}
+
+/* Form Container Wrapper (Right side) */
+.auth-form-wrapper {
+    flex: 1.2;
+    padding: 50px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+}
+
+/* Interactive Navigation Links / Back Actions */
+.back-btn-container {
+    margin-bottom: 30px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    color: #0b46a0;
+    transform: translateX(-4px);
+}
+
+.auth-form-wrapper h2 {
+    font-size: 2rem;
+    color: #0f172a;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.auth-form-wrapper p.subtitle {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 30px;
+}
+
+/* ==========================================================================
+   FORM CONTROLS & INPUT FIELDS
+   ========================================================================== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.form-group label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.form-group input, 
+.form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    color: #0f172a;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.form-group input::placeholder {
+    color: #94a3b8;
+}
+
+/* Focus and validation states */
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #0b46a0;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(11, 70, 160, 0.1);
+}
+
+/* Action Buttons styling */
+button[type="submit"] {
+    margin-top: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: #0b46a0;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(11, 70, 160, 0.2);
+}
+
+button[type="submit"]:hover {
+    background: #073173;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(11, 70, 160, 0.3);
+}
+
+button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* Switching context footer link */
+.auth-footer-link {
+    display: block;
+    text-align: center;
+    margin-top: 25px;
+    font-size: 0.92rem;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.auth-footer-link:hover {
+    color: #cf006c;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   ALERTS, ERROR MESSAGES, BANNERS
+   ========================================================================== */
+.message-banner {
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.message-banner.error {
+    background-color: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+}
+
+.message-banner.success {
+    background-color: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+}
+
+/* Inline cancel layout options */
+.back-btn-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #475569 !important;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+}
+
+.back-btn-inline:hover {
+    background: #f1f5f9;
+    color: #0f172a !important;
+    transform: translateX(-2px);
+}
+
+
+#authModalCard .auth-container {
+    max-width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+}
+
+#authModalCard .back-btn-container {
+    display: none !important;
+}
+
+#authModalCard .auth-form-wrapper {
+    max-height: 82vh;
+    overflow-y: auto;
+    /* Custom scrollbar inside the modal */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+#authModalCard .auth-form-wrapper::-webkit-scrollbar {
+    width: 5px;
+}
+
+#authModalCard .auth-form-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN SYSTEM (BREAKPOINTS)
+   ========================================================================== */
+@media (max-width: 900px) {
+    .auth-container {
+        max-width: 550px;
+        min-height: auto;
+    }
+    
+    .auth-sidebar {
+        display: none;
+    }
+    
+    .auth-form-wrapper {
+        padding: 40px 35px;
+    }
+}
+
+
+body[style*="overflow: hidden"] {
+    padding-right: 0px !important;
+}
+@media (max-width: 550px) {
+    body {
+        padding: 10px;
+    }
+    
+    .auth-container {
+        border-radius: 14px;
+    }
+    
+    .auth-form-wrapper {
+        padding: 30px 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .auth-form-wrapper h2 {
+        font-size: 1.65rem;
+    }
+}
+/* ==========================================================================
+   PASSWORD FIELD WITH TOGGLE EYE ICON
+   ========================================================================== */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 46px; /* room for the eye button */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 1.05rem;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    box-shadow: none;
+    /* override global button[type="submit"] styles */
+    margin-top: 0 !important;
+    transform: none !important;
+}
+
+.toggle-password:hover {
+    color: #0b46a0;
+    background: none;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   MESSAGE BANNER — ICON ALIGNMENT & SLIDE-IN ANIMATION
+   ========================================================================== */
+.message-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.message-banner i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+@keyframes slideInBanner {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

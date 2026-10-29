@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration Data</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/admin-users.css}" />
+</head>
+<body>
+
+    <div class="table-wrapper">
+        <div class="page-header">
+            <h1>User Registration Data</h1>
+            <div class="header-actions">
+                <a href="/admin/dashboard" class="btn btn-secondary-nav">← Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Country</th>
+                        <th>Mobile</th>
+                        <th>Gender</th>
+                        <th class="text-center">Date of Birth</th>
+                        <th>Password</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user : ${users}">
+                        <td class="fw-medium text-muted" th:text="${user.id}">1</td>
+                        <td class="fw-bold" th:text="${user.fullName}">John Doe</td>
+                        <td th:text="${user.username}">johndoe123</td>
+                        <td class="email-col" th:text="${user.email}">john.doe@example.com</td>
+                        <td th:text="${user.country}">USA</td>
+                        <td class="mono-text" th:text="${user.mobile}">1234567890</td>
+                        <td>
+                            <span th:class="${user.gender == 'Male'} ? 'gender-badge male' : 'gender-badge female'" 
+                                  th:text="${user.gender}">Male</span>
+                        </td>
+                        <td class="date-col text-center" th:text="${#temporals.format(user.dob, 'yyyy-MM-dd')}">1990-05-20</td>
+                        <td class="password-mask" th:text="${user.password}">securePassword123</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

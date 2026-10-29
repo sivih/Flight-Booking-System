@@ -1,0 +1,1084 @@
+/* ==========================================================================
+   profile.css — MyFly User Profile Page
+   Color system: Navy (#071242) + Magenta (#cf0e78) + Clean White
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --pf-navy:       #071242;
+    --pf-navy-mid:   #0f1f6e;
+    --pf-magenta:    #cf0e78;
+    --pf-magenta-lt: #fdf2f8;
+    --pf-border:     #e5e7eb;
+    --pf-bg:         #f4f6f9;
+    --pf-card-bg:    #ffffff;
+    --pf-text:       #111827;
+    --pf-muted:      #6b7280;
+    --pf-green:      #10b981;
+    --pf-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--pf-bg);
+    color: var(--pf-text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   NAVBAR
+   ========================================================================== */
+.pf-navbar {
+    background: #ffffff;
+    border-bottom: 1px solid var(--pf-border);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.pf-nav-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.pf-logo {
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--pf-navy);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.pf-logo span { font-weight: 800; color: var( --pf-navy-mid); }
+
+.pf-logo-wing {
+    font-size: 1.3rem;
+    transform: rotate(-15deg);
+    color: var(--pf-navy-mid);
+}
+
+.pf-nav-links {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.pf-nav-link {
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--pf-muted);
+    padding: 6px 14px;
+    border-radius: 20px;
+    transition: var(--pf-transition);
+}
+
+.pf-nav-link:hover { color: var(--pf-navy); background: #f3f4f6; }
+
+.pf-nav-link.active {
+    color: var(--pf-navy);
+    background: #f3f4f6;
+    font-weight: 600;
+}
+
+.pf-logout-btn {
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--pf-muted);
+    border: 1.5px solid var(--pf-border);
+    padding: 7px 16px;
+    border-radius: 20px;
+    transition: var(--pf-transition);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.pf-logout-btn:hover {
+    color: #dc2626;
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+/* ==========================================================================
+   HERO BAND
+   ========================================================================== */
+.pf-hero-band {
+    background: linear-gradient(135deg, var(--pf-navy) 0%, var(--pf-navy-mid) 100%);
+    color: white;
+    padding: 40px 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pf-hero-band::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+}
+
+.pf-hero-band::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: 40%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(207,14,120,0.08);
+}
+
+.pf-hero-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    position: relative;
+    z-index: 2;
+    flex-wrap: wrap;
+}
+
+/* Avatar */
+.pf-avatar-ring {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.pf-avatar-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pf-magenta), #ff6eb4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    border: 3px solid rgba(255,255,255,0.25);
+    box-shadow: 0 8px 24px rgba(207,14,120,0.3);
+}
+
+.pf-avatar-status {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 14px;
+    height: 14px;
+    background: var(--pf-green);
+    border-radius: 50%;
+    border: 2px solid var(--pf-navy);
+}
+
+/* Identity */
+.pf-hero-identity { flex: 1; min-width: 200px; }
+
+.pf-hero-name {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+}
+
+.pf-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pf-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+/* Stats */
+.pf-hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.pf-stat-box {
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 80px;
+}
+
+.pf-stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.pf-stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.pf-stat-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255,255,255,0.12);
+}
+
+/* ==========================================================================
+   MAIN LAYOUT
+   ========================================================================== */
+.pf-main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+}
+
+.pf-content-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* ==========================================================================
+   SIDEBAR
+   ========================================================================== */
+.pf-sidebar {
+    position: sticky;
+    top: 80px;
+}
+
+.pf-sidebar-card {
+    background: var(--pf-card-bg);
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.pf-sidebar-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pf-muted);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--pf-border);
+}
+
+.pf-detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.pf-detail-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pf-navy-mid);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.pf-detail-label {
+    font-size: 0.7rem;
+    color: var(--pf-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pf-detail-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pf-text);
+    margin-top: 1px;
+}
+
+.pf-status-active {
+    color: var(--pf-green);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.pf-book-cta {
+    display: block;
+    text-align: center;
+    background: var(--pf-magenta);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 18px;
+    transition: var(--pf-transition);
+}
+
+.pf-book-cta:hover {
+    background: #a80060;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(207,14,120,0.25);
+}
+
+/* Quick nav */
+.pf-quick-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.pf-qnav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--pf-muted);
+    text-decoration: none;
+    transition: var(--pf-transition);
+    cursor: pointer;
+}
+
+.pf-qnav-link:hover { background: #f3f4f6; color: var(--pf-text); }
+
+.pf-qnav-link.active {
+    background: var(--pf-magenta-lt);
+    color: var(--pf-magenta);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   CONTENT AREA
+   ========================================================================== */
+.pf-content-area { min-width: 0; }
+
+/* Tab bar */
+.pf-tab-bar {
+    display: flex;
+    gap: 4px;
+    background: #ffffff;
+    border: 1px solid var(--pf-border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.pf-tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pf-muted);
+    cursor: pointer;
+    transition: var(--pf-transition);
+    white-space: nowrap;
+}
+
+.pf-tab-btn:hover { background: #f3f4f6; color: var(--pf-text); }
+
+.pf-tab-btn.active {
+    background: var(--pf-navy);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(7,18,66,0.2);
+}
+
+/* Tab panels */
+.pf-tab-panel { display: none; }
+.pf-tab-panel.active { display: block; animation: tabFadeIn 0.3s ease; }
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   EMPTY STATE
+   ========================================================================== */
+.pf-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 32px;
+    text-align: center;
+    background: #ffffff;
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+}
+
+.pf-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--pf-muted);
+    margin-bottom: 16px;
+}
+
+.pf-empty-state h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--pf-text);
+}
+
+.pf-empty-state p {
+    font-size: 0.875rem;
+    color: var(--pf-muted);
+    margin-bottom: 20px;
+    max-width: 280px;
+}
+
+.pf-empty-cta {
+    display: inline-block;
+    background: var(--pf-magenta);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: 11px 24px;
+    border-radius: 8px;
+    transition: var(--pf-transition);
+}
+
+.pf-empty-cta:hover {
+    background: #a80060;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   BOOKING CARDS
+   ========================================================================== */
+.pf-booking-list { display: flex; flex-direction: column; gap: 16px; }
+
+.pf-booking-card {
+    background: var(--pf-card-bg);
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--pf-transition);
+    position: relative;
+}
+
+.pf-booking-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+    transform: translateY(-1px);
+}
+
+.pf-booking-status-ribbon {
+    position: absolute;
+    top: 16px;
+    right: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 4px 12px 4px 16px;
+    clip-path: polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%);
+}
+
+.pf-booking-status-ribbon.confirmed {
+    background: var(--pf-green);
+    color: #ffffff;
+}
+
+.pf-booking-status-ribbon.pending {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+.pf-booking-route-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 20px 16px;
+    background: linear-gradient(135deg, var(--pf-navy) 0%, var(--pf-navy-mid) 100%);
+    color: white;
+}
+
+.pf-booking-city {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.pf-city-code {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.pf-city-name {
+    font-size: 0.78rem;
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+.pf-route-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    max-width: 120px;
+}
+
+.pf-route-line {
+    width: 100%;
+    height: 1px;
+    background: rgba(255,255,255,0.3);
+    position: relative;
+}
+
+.pf-route-plane {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.8);
+}
+
+.pf-booking-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    padding: 0;
+}
+
+.pf-bdet {
+    padding: 14px 18px;
+    border-right: 1px solid var(--pf-border);
+    border-bottom: 1px solid var(--pf-border);
+}
+
+.pf-bdet:nth-child(3n) { border-right: none; }
+.pf-bdet:nth-last-child(-n+3) { border-bottom: none; }
+
+.pf-bdet-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pf-muted);
+    margin-bottom: 3px;
+    display: block;
+}
+
+.pf-bdet-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pf-text);
+}
+
+.pf-bdet-total { grid-column: span 1; }
+
+.pf-bdet-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--pf-navy);
+}
+
+.pf-booking-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    background: #f9fafb;
+    border-top: 1px solid var(--pf-border);
+}
+
+.pf-booking-id {
+    font-size: 0.75rem;
+    color: var(--pf-muted);
+    font-weight: 500;
+}
+
+.pf-view-pass-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pf-navy);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--pf-transition);
+}
+
+.pf-view-pass-btn:hover {
+    background: var(--pf-navy-mid);
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   SAVED TRIPS GRID
+   ========================================================================== */
+.pf-saved-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.pf-saved-card {
+    background: var(--pf-card-bg);
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--pf-transition);
+}
+
+.pf-saved-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+.pf-saved-card-img {
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.pf-saved-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: var(--pf-transition);
+}
+
+.pf-saved-remove-btn:hover { background: #fef2f2; color: #dc2626; }
+
+.pf-saved-price-tag {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: #0f172a;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 5px;
+}
+
+.pf-saved-card-body { padding: 14px; }
+
+.pf-saved-dest {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--pf-text);
+    margin-bottom: 4px;
+}
+
+.pf-saved-note {
+    font-size: 0.78rem;
+    color: var(--pf-muted);
+    margin-bottom: 12px;
+}
+
+.pf-saved-book-btn {
+    display: block;
+    text-align: center;
+    background: transparent;
+    border: 1.5px solid var(--pf-navy);
+    color: var(--pf-navy);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 8px;
+    border-radius: 6px;
+    transition: var(--pf-transition);
+}
+
+.pf-saved-book-btn:hover {
+    background: var(--pf-navy);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   BOARDING PASSES GRID
+   ========================================================================== */
+.pf-passes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.pf-boarding-pass {
+    background: linear-gradient(145deg, var(--pf-navy) 0%, #1e3a8a 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(7,18,66,0.25);
+    transition: var(--pf-transition);
+}
+
+.pf-boarding-pass:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px rgba(7,18,66,0.3);
+}
+
+.pf-boarding-pass::before {
+    content: '✈';
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    font-size: 5rem;
+    opacity: 0.05;
+}
+
+.pf-pass-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.pf-pass-airline {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+.pf-pass-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.pf-pass-route {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.pf-pass-iata {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.pf-pass-city {
+    font-size: 0.72rem;
+    opacity: 0.6;
+    margin-top: 2px;
+}
+
+.pf-pass-arrow {
+    font-size: 1.4rem;
+    opacity: 0.5;
+}
+
+.pf-pass-dashes {
+    border-top: 1.5px dashed rgba(255,255,255,0.2);
+    margin: 14px 0;
+}
+
+.pf-pass-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.pf-pass-field-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.5;
+    margin-bottom: 2px;
+}
+
+.pf-pass-field-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Barcode */
+.pf-pass-barcode {
+    text-align: center;
+    margin-top: 4px;
+}
+
+.pf-barcode-visual {
+    height: 44px;
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    padding: 4px 6px;
+    box-sizing: border-box;
+}
+
+.pf-barcode-bars {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
+    flex-grow: 1;
+}
+
+.pf-pass-booking-id {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+
+.pf-print-pass-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    border-radius: 7px;
+    padding: 9px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: var(--pf-transition);
+}
+
+.pf-print-pass-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* ==========================================================================
+   BOARDING PASS MODAL
+   ========================================================================== */
+.pf-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(7,18,66,0.45);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pf-modal-backdrop.active {
+    display: block;
+    opacity: 1;
+}
+
+.pf-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pf-modal.active {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.pf-modal-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+    position: relative;
+}
+
+.pf-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--pf-border);
+    background: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--pf-muted);
+    font-size: 0.9rem;
+    transition: var(--pf-transition);
+}
+
+.pf-modal-close:hover { background: #f3f4f6; color: var(--pf-text); transform: rotate(90deg); }
+
+.pf-modal-pass {
+    background: linear-gradient(145deg, var(--pf-navy) 0%, #1e3a8a 100%);
+    border-radius: 14px;
+    padding: 20px;
+    color: white;
+    margin-bottom: 16px;
+}
+
+.pf-modal-print-btn {
+    background: var(--pf-navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--pf-transition);
+}
+
+.pf-modal-print-btn:hover { background: var(--pf-navy-mid); }
+
+.pf-modal-close-btn {
+    background: transparent;
+    border: 1.5px solid var(--pf-border);
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pf-muted);
+    cursor: pointer;
+    transition: var(--pf-transition);
+}
+
+.pf-modal-close-btn:hover { border-color: #9ca3af; color: var(--pf-text); }
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .pf-content-grid {
+        grid-template-columns: 240px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .pf-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pf-sidebar { position: relative; top: 0; }
+
+    .pf-hero-inner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .pf-hero-meta { justify-content: center; }
+    .pf-hero-stats { margin: 0 auto; }
+    .pf-hero-identity { text-align: center; }
+
+    .pf-booking-details {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pf-tab-btn { font-size: 0.78rem; padding: 9px 10px; }
+
+    .pf-nav-links { display: none; }
+}
+
+@media (max-width: 480px) {
+    .pf-main { padding: 16px 12px 40px; }
+
+    .pf-booking-details { grid-template-columns: 1fr; }
+
+    .pf-bdet { border-right: none; }
+
+    .pf-passes-grid { grid-template-columns: 1fr; }
+
+    .pf-hero-name { font-size: 1.3rem; }
+}
+
+
+@media print {
+    .pf-navbar, .pf-hero-band, .pf-sidebar, .pf-tab-bar, 
+    .pf-booking-list, .pf-modal-close, .pf-print-pass-btn,
+    .pf-modal-print-btn, .pf-modal-close-btn { display: none !important; }
+    
+    .pf-boarding-pass { break-inside: avoid; }
+}

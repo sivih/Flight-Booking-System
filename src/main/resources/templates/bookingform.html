@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="myfly-session-userid" th:content="${session.userId != null ? session.userId : (booking != null and booking.userId != null and booking.userId > 0 ? booking.userId : '')}">
+    <!-- Legacy meta tag kept for backward compatibility; no longer used for localStorage
+         key scoping. The numeric userId from myfly-session-userid is used instead so
+         both bookingform.html and profile.html produce identical key prefixes. -->
+    <meta name="myfly-session-user" th:content="${booking != null and booking.username != null ? booking.username : ''}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFly – Book a Flight</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/bookingform.css}">
+    
+    <style>
+:root{--navy:#071242;--navyM:#0f1f6e;--mag:#cf0e78;--magLt:#fdf2f8;--border:#e5e7eb;--green:#10b981;}
+.step-panel{display:none}.step-panel.active{display:block;animation:stepIn .3s ease}
+@keyframes stepIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.progress-journey{display:flex;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.journey-step{flex:1;text-align:center;padding:14px 6px;font-size:.75rem;font-weight:600;color:#6b7280;background:#f9fafb;border-right:1px solid var(--border);white-space:nowrap;transition:all .2s;cursor:default}
+.journey-step:last-child{border-right:none}
+.journey-step.active{background:var(--navy);color:#fff}
+.journey-step.done{background:#f0fdf4;color:#15803d}
+.journey-step.done::after{content:' ✓'}
+.city-wrap{position:relative}
+.city-trigger{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;background:#fff;cursor:pointer;min-height:50px;user-select:none;transition:border-color .15s}
+.city-trigger:hover,.city-trigger.open{border-color:var(--navyM);box-shadow:0 0 0 3px rgba(15,31,110,.07)}
+.city-trigger-text{flex:1;font-weight:700;font-size:.92rem;color:#111}
+.city-trigger-text.ph{font-weight:400;color:#9ca3af}
+.city-trigger-iata{font-size:.7rem;font-weight:800;color:var(--mag);background:var(--magLt);padding:2px 7px;border-radius:4px;display:none}
+.city-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:270px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.12);z-index:600;display:none;flex-direction:column;max-height:340px;overflow:hidden}
+.city-dropdown.open{display:flex}
+.city-search-bar{padding:10px;border-bottom:1px solid #f3f4f6}
+.city-search-bar input{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:.875rem;outline:none;background:#f9fafb}
+.city-list{overflow-y:auto;flex:1}
+.city-row{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .12s;font-size:.875rem}
+.city-row:hover{background:#f8fafc}.city-row.sel{background:#eff6ff}.city-row.excl{opacity:.3;pointer-events:none}
+.city-flag{font-size:1.2rem}.city-name{font-weight:600;color:#111;flex:1}.city-country{font-size:.7rem;color:#6b7280}
+.city-iata-badge{font-size:.68rem;font-weight:800;color:#0b46a0;background:#eff6ff;padding:2px 6px;border-radius:4px}
+.cal-wrap{position:relative}
+.cal-trigger{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;background:#fff;cursor:pointer;min-height:50px;user-select:none;transition:border-color .15s}
+.cal-trigger:hover,.cal-trigger.open{border-color:var(--navyM)}
+.cal-trigger-text{flex:1;font-weight:700;font-size:.92rem;color:#111}
+.cal-trigger-text.ph{font-weight:400;color:#9ca3af}
+.cal-panel{position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.13);z-index:600;padding:18px;min-width:300px;display:none}
+.cal-panel.open{display:block}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav-btn{background:#f1f5f9;border:none;width:30px;height:30px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#475569}
+.cal-nav-btn:hover{background:#e2e8f0}
+.cal-month{font-weight:700;font-size:.92rem;color:#0f172a}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{font-size:.65rem;font-weight:700;color:#94a3b8;text-align:center;padding:3px 0 8px;text-transform:uppercase}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;font-size:.78rem;font-weight:500;cursor:default;color:#d1d5db;transition:all .12s;position:relative}
+.cal-day.avail{color:#111;cursor:pointer;font-weight:600}
+.cal-day.avail:hover{background:#eff6ff;color:#0b46a0}
+.cal-day.has-flight{color:#0b46a0;font-weight:700}
+.cal-day.has-flight::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--green)}
+.cal-day.selected{background:var(--navy);color:#fff!important;border-radius:7px}
+.cal-day.past{color:#e2e8f0;cursor:not-allowed}
+.cal-day.no-flight{color:#fca5a5;cursor:pointer}
+.cal-price{font-size:.55rem;color:var(--green);font-weight:700;line-height:1}
+.cal-day.selected .cal-price{color:#93c5fd}
+.cal-legend{display:flex;gap:12px;margin-top:12px;font-size:.7rem;color:#64748b;flex-wrap:wrap}
+.cal-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px}
+.no-flight-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;color:#fff;padding:14px 24px;border-radius:12px;font-size:.88rem;font-weight:600;z-index:9000;opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:90vw}
+.no-flight-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.no-flight-toast.error{background:#991b1b}
+.tier-card{border:2px solid var(--border)!important;border-radius:10px!important;cursor:pointer;transition:all .15s;background:#fff;padding:16px}
+.tier-card:hover,.tier-card.active{border-color:var(--mag)!important;background:var(--magLt)}
+.tier-card.active{box-shadow:0 0 0 1px var(--mag)}
+.bag-card{border:2px solid var(--border)!important;border-radius:8px!important;cursor:pointer;transition:all .15s;background:#fff;text-align:center;padding:14px}
+.bag-card:hover,.bag-card.active{border-color:var(--mag)!important;background:var(--magLt)}
+.pay-card{border:2px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px}
+.pay-card:hover{border-color:#9ca3af}
+.pay-card.selected{border-color:var(--navy);background:#f0f4ff}
+.btn-next{background:var(--mag);color:#fff;border:none;padding:13px 32px;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s}
+.btn-next:hover{background:#a80060}
+.btn-back{background:transparent;color:#6b7280;border:1.5px solid var(--border);padding:13px 22px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-back:hover{border-color:#9ca3af;color:#374151}
+.ledger-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #f3f4f6;font-size:.84rem}
+.ledger-row:last-child{border-bottom:none}
+.ledger-lbl{color:#6b7280}.ledger-val{font-weight:600;color:#111}
+.ledger-total{display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;border-top:2px solid #111;margin-top:6px}
+.ledger-total-lbl{font-weight:700;font-size:.88rem}
+.ledger-total-val{font-weight:800;font-size:1.55rem;color:var(--navy)}
+.passport-card{background:#f8fafc;border:1.5px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.passport-card-hdr{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:.92rem;color:var(--navy);margin-bottom:14px}
+.pp-hint{font-size:.72rem;color:#6b7280;margin-top:3px}
+.bp-backdrop{display:none;position:fixed;inset:0;background:rgba(7,18,66,.5);backdrop-filter:blur(6px);z-index:2000;align-items:center;justify-content:center}
+.bp-backdrop.show{display:flex}
+.bp-modal{background:#fff;border-radius:20px;max-width:440px;width:94vw;padding:28px;box-shadow:0 30px 60px rgba(0,0,0,.25);transform:scale(.93);transition:transform .3s}
+.bp-backdrop.show .bp-modal{transform:scale(1)}
+.bp-card{background:linear-gradient(135deg,var(--navy) 0%,#1e3a8a 100%);color:#fff;border-radius:14px;padding:22px;position:relative;overflow:hidden}
+.bp-card::before{content:'✈';position:absolute;right:-8px;top:-8px;font-size:5rem;opacity:.05;transform:rotate(15deg)}
+.bp-airline{font-size:.95rem;font-weight:800;letter-spacing:.03em}
+.bp-type{font-size:.62rem;font-weight:700;letter-spacing:.1em;opacity:.55;background:rgba(255,255,255,.1);padding:3px 8px;border-radius:4px}
+.bp-route{display:flex;justify-content:space-between;align-items:center;margin:14px 0}
+.bp-iata{font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.bp-city{font-size:.7rem;opacity:.6;margin-top:2px}
+.bp-arrow{font-size:1.3rem;opacity:.45}
+.bp-dashes{border-top:1.5px dashed rgba(255,255,255,.2);margin:12px 0}
+.bp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bp-fld-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px}
+.bp-fld-val{font-size:.82rem;font-weight:700}
+.bp-barcode{height:44px;background:rgba(255,255,255,.07);border-radius:4px;margin-top:10px;display:flex;align-items:stretch;padding:4px 6px;overflow:hidden}
+.bp-bar-bars{display:flex;align-items:stretch;height:100%;width:100%;justify-content:space-between;}
+.bp-bk-id{text-align:center;font-size:.68rem;opacity:.45;letter-spacing:.1em;margin-top:4px}
+.btn-save-pass{width:100%;background:var(--mag);color:#fff;border:none;border-radius:8px;padding:12px;font-weight:700;cursor:pointer;margin-top:12px;transition:background .15s}
+.btn-save-pass:hover{background:#a80060}
+.btn-save-pass.saved{background:var(--green);cursor:default}
+.btn-close-bp{width:100%;background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-weight:600;cursor:pointer;color:#6b7280;margin-top:8px;transition:all .15s}
+.btn-close-bp:hover{border-color:#9ca3af;color:#111}
+    </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="no-flight-toast" id="nfToast">
+  <i class="bi bi-exclamation-circle-fill" style="font-size:1.1rem"></i>
+  <span id="nfMsg">No flights available for this date.</span>
+</div>
+
+<!-- BOARDING PASS MODAL (multi-passenger) -->
+<div class="bp-backdrop" id="bpBackdrop">
+  <div class="bp-modal" style="max-width:480px;max-height:88vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0">
+      <h5 style="font-weight:800;color:var(--navy);margin:0">🎉 Booking Confirmed!</h5>
+      <button onclick="closeBP()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#6b7280">&times;</button>
+    </div>
+    <!-- Passenger tab pills (shown when >1 passenger) -->
+    <div id="bpPaxTabs" style="display:none;flex-shrink:0;margin-bottom:12px;overflow-x:auto;white-space:nowrap;padding-bottom:4px"></div>
+    <!-- Scrollable pass stack -->
+    <div id="bpPassesWrap" style="overflow-y:auto;flex:1;padding-right:2px"></div>
+    <!-- Hidden legacy anchor fields for savePass() / _saveBookingToLocalStorage() backward compat -->
+    <span id="bpBkId" style="display:none">BK-000000</span>
+    <span id="bpFromCity" style="display:none">—</span>
+    <span id="bpFromIata" style="display:none">—</span>
+    <span id="bpToCity" style="display:none">—</span>
+    <span id="bpToIata" style="display:none">—</span>
+    <span id="bpPaxName" style="display:none">—</span>
+    <span id="bpDate" style="display:none">—</span>
+    <span id="bpClass" style="display:none">Economy</span>
+    <span id="bpSeat" style="display:none">14A</span>
+    <span id="bpPassport" style="display:none">—</span>
+    <span id="bpTotal" style="display:none">€ 0.00</span>
+    <div style="flex-shrink:0;margin-top:10px">
+      <button class="btn-save-pass" id="btnSavePass" onclick="savePass()">
+        <i class="bi bi-bookmark-fill me-2"></i>Save to My Profile
+      </button>
+      <button class="btn-close-bp" onclick="closeBP()">Close &amp; Finish</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<header class="navbar-custom">
+  <div class="nav-container">
+    <div class="logo">
+      <i class="bi bi-wind logo-icon-wing"></i>MyFly<span class="logo-bold"></span>
+     
+    </div>
+    <nav class="nav-actions">
+      <a th:href="@{/}" class="nav-btn">Home</a>
+      <a th:href="@{/useroptions}" class="nav-btn">Search</a>
+      <a href="#" class="nav-btn active">Book</a>
+      <a th:href="@{/users/profile}" class="nav-btn">Profile</a>
+    </nav>
+    <div class="user-profile">
+      <a th:href="@{/users/profile}" style="text-decoration:none;color:inherit">
+        <i class="bi bi-person-circle" style="font-size:1.4rem"></i>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="wizz-container my-4 px-3">
+
+  <div th:if="${errorMessage}" class="alert alert-danger rounded-2 mb-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}"></span>
+  </div>
+  <div th:if="${successMessage}" class="alert alert-success rounded-2 mb-3" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-journey mb-4">
+    <div class="journey-step active" id="lbl1"><i class="bi bi-airplane me-1"></i>1. Flight</div>
+    <div class="journey-step"        id="lbl2"><i class="bi bi-people me-1"></i>2. Passengers</div>
+    <div class="journey-step"        id="lbl3"><i class="bi bi-passport me-1"></i>3. Passports</div>
+    <div class="journey-step"        id="lbl4"><i class="bi bi-bag me-1"></i>4. Extras</div>
+    <div class="journey-step"        id="lbl5"><i class="bi bi-credit-card me-1"></i>5. Payment</div>
+  </div>
+
+  <form id="bookingForm" th:action="@{/bookingform}" th:object="${booking}" method="post">
+    <input type="hidden" id="userId" name="userId" value="">
+    <input type="hidden" id="totalPriceH" th:field="*{totalPrice}" value="0">
+    <!-- hidden backend selects -->
+    <select id="sourceHidden"      th:field="*{source}"      class="d-none">
+      <option value="">—</option>
+      <option th:each="s:${sources}"      th:value="${s}" th:text="${s}"></option>
+    </select>
+    <select id="destinationHidden" th:field="*{destination}" class="d-none">
+      <option value="">—</option>
+      <option th:each="d:${destinations}" th:value="${d}" th:text="${d}"></option>
+    </select>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+
+        <!-- ═══════════════ STEP 1 – FLIGHT ═══════════════ -->
+        <div class="step-panel active wizz-section-panel p-4 mb-4" id="sp1">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+            <h4 class="panel-inner-title m-0"><i class="bi bi-search me-2"></i>Select Your Route</h4>
+            <div class="d-flex gap-3">
+              <label class="d-flex align-items-center gap-1 small fw-bold" style="cursor:pointer">
+                <input type="radio" name="tripType" id="rtRound" value="round" checked class="accent-wizz"> Round trip
+              </label>
+              <label class="d-flex align-items-center gap-1 small fw-bold" style="cursor:pointer">
+                <input type="radio" name="tripType" id="rtOne"   value="oneway"       class="accent-wizz"> One way
+              </label>
+            </div>
+          </div>
+
+          <!-- CITY PICKERS -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-5">
+              <label class="form-label small fw-bold text-muted text-uppercase" style="font-size:.68rem;letter-spacing:.05em">From</label>
+              <div class="city-wrap" id="wrapSrc">
+                <div class="city-trigger" id="trigSrc" onclick="toggleCity('src')">
+                  <i class="bi bi-geo-alt text-primary"></i>
+                  <span class="city-trigger-text ph" id="txtSrc">Select departure city</span>
+                  <span class="city-trigger-iata" id="iataSrc"></span>
+                </div>
+                <div class="city-dropdown" id="ddSrc">
+                  <div class="city-search-bar"><input type="text" id="inSrc" placeholder="Search city…" oninput="filterCity('src',this.value)"></div>
+                  <div class="city-list" id="listSrc"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end justify-content-center pb-1">
+              <button type="button" onclick="swapCities()" title="Swap"
+                style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <i class="bi bi-arrow-left-right text-primary" id="swapIcon"></i>
+              </button>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-bold text-muted text-uppercase" style="font-size:.68rem;letter-spacing:.05em">To</label>
+              <div class="city-wrap" id="wrapDst">
+                <div class="city-trigger" id="trigDst" onclick="toggleCity('dst')">
+                  <i class="bi bi-geo-alt-fill text-primary"></i>
+                  <span class="city-trigger-text ph" id="txtDst">Select destination city</span>
+                  <span class="city-trigger-iata" id="iataDst"></span>
+                </div>
+                <div class="city-dropdown" id="ddDst">
+                  <div class="city-search-bar"><input type="text" id="inDst" placeholder="Search city…" oninput="filterCity('dst',this.value)"></div>
+                  <div class="city-list" id="listDst"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DATE PICKERS -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted text-uppercase" style="font-size:.68rem;letter-spacing:.05em"><i class="bi bi-calendar3 me-1"></i>Departure Date</label>
+              <div class="cal-wrap" id="calWrapDep">
+                <div class="cal-trigger" id="calTrigDep" onclick="toggleCal('dep')">
+                  <i class="bi bi-calendar3 text-primary"></i>
+                  <span class="cal-trigger-text ph" id="calTxtDep">Select date</span>
+                </div>
+                <div class="cal-panel" id="calPanelDep"></div>
+                <input type="hidden" id="departureDateH" th:field="*{departureDate}">
+              </div>
+            </div>
+            <div class="col-md-6" id="retDateCol">
+              <label class="form-label small fw-bold text-muted text-uppercase" style="font-size:.68rem;letter-spacing:.05em"><i class="bi bi-calendar3-range me-1"></i>Return Date <span class="text-muted">(optional)</span></label>
+              <div class="cal-wrap" id="calWrapRet">
+                <div class="cal-trigger" id="calTrigRet" onclick="toggleCal('ret')">
+                  <i class="bi bi-calendar3-range text-primary"></i>
+                  <span class="cal-trigger-text ph" id="calTxtRet">Select return date</span>
+                </div>
+                <div class="cal-panel" id="calPanelRet"></div>
+                <input type="hidden" id="returnDateH" th:field="*{returnDate}">
+              </div>
+            </div>
+          </div>
+
+          <!-- DEPARTURE TIME FRAME -->
+          <div id="timeFrameWrap" class="mb-4" style="display:none">
+            <label class="form-label small fw-bold text-muted text-uppercase" style="font-size:.68rem;letter-spacing:.05em"><i class="bi bi-clock me-1"></i>Departure Time Frame</label>
+            <div class="row g-2">
+              <div class="col-6 col-md-3">
+                <label class="bag-card text-center p-3 d-block" id="tfMorningCard" style="font-size:.82rem;cursor:pointer" onclick="selectTimeFrame('Morning')">
+                  <input type="radio" name="timeFrame" value="Morning" class="accent-wizz d-none">
+                  <div style="font-size:1.3rem">🌅</div>
+                  <div class="fw-bold mt-1" style="font-size:.8rem">Morning</div>
+                  <small class="text-muted" style="font-size:.68rem">06:00 – 09:59</small>
+                </label>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="bag-card text-center p-3 d-block" id="tfLateMorningCard" style="font-size:.82rem;cursor:pointer" onclick="selectTimeFrame('LateMorning')">
+                  <input type="radio" name="timeFrame" value="LateMorning" class="accent-wizz d-none">
+                  <div style="font-size:1.3rem">☀️</div>
+                  <div class="fw-bold mt-1" style="font-size:.8rem">Late Morning</div>
+                  <small class="text-muted" style="font-size:.68rem">10:00 – 13:59</small>
+                </label>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="bag-card text-center p-3 d-block" id="tfEveningCard" style="font-size:.82rem;cursor:pointer" onclick="selectTimeFrame('Evening')">
+                  <input type="radio" name="timeFrame" value="Evening" class="accent-wizz d-none">
+                  <div style="font-size:1.3rem">🌆</div>
+                  <div class="fw-bold mt-1" style="font-size:.8rem">Evening</div>
+                  <small class="text-muted" style="font-size:.68rem">14:00 – 19:59</small>
+                </label>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="bag-card text-center p-3 d-block" id="tfNightCard" style="font-size:.82rem;cursor:pointer" onclick="selectTimeFrame('Night')">
+                  <input type="radio" name="timeFrame" value="Night" class="accent-wizz d-none">
+                  <div style="font-size:1.3rem">🌙</div>
+                  <div class="fw-bold mt-1" style="font-size:.8rem">Night</div>
+                  <small class="text-muted" style="font-size:.68rem">20:00 – 23:59</small>
+                </label>
+              </div>
+            </div>
+            <!-- Flight duration / arrival info -->
+            <div id="flightTimingInfo" class="mt-3 p-3 rounded-3" style="display:none;background:linear-gradient(135deg,#eef2ff,#f0fdf4);border:1px solid #c7d2fe">
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="text-center">
+                  <div class="small text-muted fw-semibold" style="font-size:.67rem;text-transform:uppercase;letter-spacing:.05em">Departs</div>
+                  <div class="fw-bold" id="ftDeparture" style="color:var(--navy);font-size:1.05rem">—</div>
+                </div>
+                <div class="text-center flex-grow-1">
+                  <div class="small text-muted" style="font-size:.68rem">✈ <span id="ftDuration">—</span></div>
+                  <div style="height:2px;background:linear-gradient(to right,var(--navy),var(--mag));border-radius:2px;margin:4px 0"></div>
+                </div>
+                <div class="text-center">
+                  <div class="small text-muted fw-semibold" style="font-size:.67rem;text-transform:uppercase;letter-spacing:.05em">Arrives</div>
+                  <div class="fw-bold" id="ftArrival" style="color:var(--mag);font-size:1.05rem">—</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="departureTimeH" name="departureTime" value="">
+            <input type="hidden" id="arrivalTimeH" name="arrivalTime" value="">
+            <input type="hidden" id="flightDurationH" name="flightDuration" value="">
+          </div>
+
+          <!-- ROUTE BADGE -->
+          <div id="routeBadge" class="d-none mb-4 p-3 rounded-3 text-white fw-bold"
+               style="background:linear-gradient(135deg,var(--navy),#1e3a8a)">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-airplane-fill"></i>
+              <span id="rbFrom">—</span>
+              <i class="bi bi-arrow-right opacity-50"></i>
+              <span id="rbTo">—</span>
+              <span class="ms-auto badge bg-white text-dark" id="rbPrice">€ —</span>
+            </div>
+          </div>
+
+          <!-- FARE TIER CARDS -->
+          <h6 class="fw-bold mb-3" style="font-size:.88rem;color:#374151">Choose Your Fare</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="tier-card d-block position-relative" id="tcLight">
+                <input type="radio" name="flightTier" value="Light" class="position-absolute top-0 end-0 m-2 accent-wizz" onchange="onTierChange(this)">
+                <span class="badge bg-secondary mb-2" style="font-size:.68rem">LIGHT</span>
+                <div class="fw-bold text-dark mb-2" style="font-size:1.1rem">€ <span class="tierValLight">0.00</span></div>
+                <ul style="list-style:none;padding-left:0;margin:0;font-size:10.5px;color:#6b7280;line-height:1.7">
+                  <li>✓ Underseat carry-on</li><li>✓ Standard check-in</li><li>✗ No seat selection</li>
+                </ul>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="tier-card active d-block position-relative" id="tcSmart">
+                <input type="radio" name="flightTier" value="Smart" checked class="position-absolute top-0 end-0 m-2 accent-wizz" onchange="onTierChange(this)">
+                <span class="badge mb-2" style="font-size:.68rem;background:var(--mag)">SMART ✦</span>
+                <div class="fw-bold text-dark mb-2" style="font-size:1.1rem">€ <span class="tierValSmart">0.00</span></div>
+                <ul style="list-style:none;padding-left:0;margin:0;font-size:10.5px;color:#6b7280;line-height:1.7">
+                  <li>✓ 20 kg checked bag</li><li>✓ Priority boarding</li><li>✓ Free seat selection</li>
+                </ul>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="tier-card d-block position-relative" id="tcPro">
+                <input type="radio" name="flightTier" value="Pro" class="position-absolute top-0 end-0 m-2 accent-wizz" onchange="onTierChange(this)">
+                <span class="badge bg-dark mb-2" style="font-size:.68rem">PRO ELITE</span>
+                <div class="fw-bold text-dark mb-2" style="font-size:1.1rem">€ <span class="tierValPro">0.00</span></div>
+                <ul style="list-style:none;padding-left:0;margin:0;font-size:10.5px;color:#6b7280;line-height:1.7">
+                  <li>✓ 32 kg cargo bag</li><li>✓ Flexible cancel</li><li>✓ Lounge access</li>
+                </ul>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn-next" onclick="goStep(2)">Passenger Details <i class="bi bi-arrow-right ms-2"></i></button>
+          </div>
+        </div>
+
+        <!-- ═══════════════ STEP 2 – PASSENGERS ═══════════════ -->
+        <div class="step-panel wizz-section-panel p-4 mb-4" id="sp2">
+          <h4 class="panel-inner-title mb-4"><i class="bi bi-people-fill me-2"></i>Passenger Details</h4>
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted">Your Username</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" id="usernameIn" th:field="*{username}" class="form-control"
+                       placeholder="Your registered username" autocomplete="off" required>
+                <span class="input-group-text" id="unStatus"><i class="bi bi-circle text-muted"></i></span>
+              </div>
+              <div class="form-text" id="unHint">Enter your username to auto-link this booking</div>
+            </div>
+          </div>
+          <div class="row g-3 mb-4 p-3 bg-light rounded border">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted">Cabin Class</label>
+              <select id="flightClass" th:field="*{flightClass}" class="form-select" required onchange="calcPrice()">
+                <option value="Economy">Economy — Base price</option>
+                <option value="Business">Business Suite — ×1.5</option>
+                <option value="First Class">First Class — ×2.0</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted">Number of Passengers</label>
+              <div class="input-group">
+                <button type="button" class="btn btn-outline-secondary" onclick="adjPax(-1)">−</button>
+                <input type="number" id="tickets" th:field="*{tickets}" min="1" max="9"
+                       class="form-control text-center fw-bold" value="1" required onchange="onPaxChange()">
+                <button type="button" class="btn btn-outline-secondary" onclick="adjPax(1)">+</button>
+              </div>
+            </div>
+          </div>
+          <div id="paxNamesWrap" class="mb-4"></div>
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn-back" onclick="goStep(1)"><i class="bi bi-arrow-left me-2"></i>Back</button>
+            <button type="button" class="btn-next" onclick="goStep(3)">Passport Details <i class="bi bi-arrow-right ms-2"></i></button>
+          </div>
+        </div>
+
+        <!-- ═══════════════ STEP 3 – PASSPORTS ═══════════════ -->
+        <div class="step-panel wizz-section-panel p-4 mb-4" id="sp3">
+          <h4 class="panel-inner-title mb-1"><i class="bi bi-passport me-2"></i>Passport Details</h4>
+          <p class="text-muted small mb-4">Required for all passengers. Details must match your travel document exactly.</p>
+          <div id="passportFormsWrap"></div>
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn-back" onclick="goStep(2)"><i class="bi bi-arrow-left me-2"></i>Back</button>
+            <button type="button" class="btn-next" onclick="goStep(4)">Extras &amp; Baggage <i class="bi bi-arrow-right ms-2"></i></button>
+          </div>
+        </div>
+
+        <!-- ═══════════════ STEP 4 – EXTRAS ═══════════════ -->
+        <div class="step-panel wizz-section-panel p-4 mb-4" id="sp4">
+          <h4 class="panel-inner-title mb-4"><i class="bi bi-bag-check-fill me-2"></i>Extras &amp; Baggage</h4>
+          <h6 class="fw-bold mb-3" style="font-size:.86rem">Additional Checked Baggage</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <label class="bag-card d-block position-relative">
+                <input type="radio" name="baggage" value="10" class="position-absolute top-0 start-0 m-2 accent-wizz" onchange="onBagChange(this)">
+                <i class="bi bi-backpack fs-2 text-secondary d-block my-2"></i>
+                <div class="fw-bold" style="font-size:.86rem">+10 kg</div><small class="text-muted">+ €15</small>
+              </label>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="bag-card active d-block position-relative">
+                <input type="radio" name="baggage" value="20" checked class="position-absolute top-0 start-0 m-2 accent-wizz" onchange="onBagChange(this)">
+                <i class="bi bi-luggage fs-2 text-primary d-block my-2"></i>
+                <div class="fw-bold" style="font-size:.86rem">+20 kg</div><small class="text-muted">Included</small>
+              </label>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="bag-card d-block position-relative">
+                <input type="radio" name="baggage" value="26" class="position-absolute top-0 start-0 m-2 accent-wizz" onchange="onBagChange(this)">
+                <i class="bi bi-luggage-fill fs-2 text-secondary d-block my-2"></i>
+                <div class="fw-bold" style="font-size:.86rem">+26 kg</div><small class="text-muted">+ €32</small>
+              </label>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="bag-card d-block position-relative">
+                <input type="radio" name="baggage" value="32" class="position-absolute top-0 start-0 m-2 accent-wizz" onchange="onBagChange(this)">
+                <i class="bi bi-box-seam fs-2 text-secondary d-block my-2"></i>
+                <div class="fw-bold" style="font-size:.86rem">+32 kg</div><small class="text-muted">+ €48</small>
+              </label>
+            </div>
+          </div>
+          <h6 class="fw-bold mb-3" style="font-size:.86rem">Seat Preference</h6>
+          <div id="seatLightNotice" class="mb-2 p-2 rounded" style="display:none;background:#fff8e1;border:1px solid #fbbf24;font-size:.8rem;color:#92400e">
+            <i class="bi bi-info-circle-fill me-1"></i>
+            <strong>Light fare:</strong> Specific seat selection costs extra. Choose a seat below or continue with random free seating.
+          </div>
+          <div class="row g-2 mb-4" id="seatOptionsWrap">
+            <div class="col-3">
+              <label class="bag-card text-center p-2 d-block" style="font-size:.82rem" id="seatOptRandom">
+                <input type="radio" name="seatPref" value="random" class="accent-wizz" checked onchange="onSeatChange(this)">
+                🎲 Random<br><small class="text-success fw-bold">Free</small>
+              </label>
+            </div>
+            <div class="col-3">
+              <label class="bag-card text-center p-2 d-block" style="font-size:.82rem" id="seatOptWindow">
+                <input type="radio" name="seatPref" value="window" class="accent-wizz" onchange="onSeatChange(this)">
+                🪟 Window<br><small id="seatCostWindow" class="text-muted">Free</small>
+              </label>
+            </div>
+            <div class="col-3">
+              <label class="bag-card text-center p-2 d-block" style="font-size:.82rem" id="seatOptMiddle">
+                <input type="radio" name="seatPref" value="middle" class="accent-wizz" onchange="onSeatChange(this)">
+                🔲 Middle<br><small id="seatCostMiddle" class="text-muted">Free</small>
+              </label>
+            </div>
+            <div class="col-3">
+              <label class="bag-card text-center p-2 d-block" style="font-size:.82rem" id="seatOptAisle">
+                <input type="radio" name="seatPref" value="aisle" class="accent-wizz" onchange="onSeatChange(this)">
+                🚶 Aisle<br><small id="seatCostAisle" class="text-muted">Free</small>
+              </label>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn-back" onclick="goStep(3)"><i class="bi bi-arrow-left me-2"></i>Back</button>
+            <button type="button" class="btn-next" onclick="goStep(5)">Secure Payment <i class="bi bi-arrow-right ms-2"></i></button>
+          </div>
+        </div>
+
+        <!-- ═══════════════ STEP 5 – PAYMENT ═══════════════ -->
+        <div class="step-panel wizz-section-panel p-4 mb-4" id="sp5">
+          <h4 class="panel-inner-title mb-4"><i class="bi bi-shield-lock-fill me-2 text-success"></i>Secure Payment</h4>
+          <label class="form-label small fw-bold text-muted d-block mb-3">Payment Method</label>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="pay-card selected" id="pcCredit" onclick="selPay('CREDIT CARD',this)">
+                <span style="font-size:1.7rem">💳</span>
+                <div><div style="font-weight:700;font-size:.9rem">Credit Card</div><div style="font-size:.74rem;color:#6b7280">Visa, Mastercard, Amex</div></div>
+                <i class="bi bi-check-circle-fill text-primary ms-auto" id="ckCredit"></i>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="pay-card" id="pcDebit" onclick="selPay('DEBIT CARD',this)">
+                <span style="font-size:1.7rem">🏦</span>
+                <div><div style="font-weight:700;font-size:.9rem">Debit Card</div><div style="font-size:.74rem;color:#6b7280">Direct bank payment</div></div>
+                <i class="bi bi-circle text-muted ms-auto" id="ckDebit"></i>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="payMethodH" th:field="*{paymentMethod}" value="CREDIT CARD">
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted">Card Number</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-credit-card-2-front"></i></span>
+                <input type="text" id="cardNum" name="cardNumber" class="form-control"
+                       placeholder="0000  0000  0000  0000" maxlength="22" oninput="fmtCard(this)" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted">Expiry</label>
+              <input type="text" id="cardExp" name="cardExpiry" class="form-control" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted">CVV</label>
+              <input type="password" id="cardCvv" name="cardCvv" class="form-control" placeholder="•••" maxlength="4">
+            </div>
+          </div>
+          <!-- Booking summary preview -->
+          <div class="p-3 rounded-3 mb-4" style="background:#f8fafc;border:1.5px solid var(--border)">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="small text-muted mb-1">Booking summary</div>
+                <div class="fw-bold" id="summRoute" style="color:var(--navy)">— → —</div>
+                <div class="small text-muted mt-1" id="summDate">Date: —</div>
+              </div>
+              <div class="text-end">
+                <div class="small text-muted">Total due</div>
+                <div id="summTotal" style="font-size:1.5rem;font-weight:800;color:var(--navy)">€ 0.00</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between flex-wrap gap-2">
+            <button type="button" class="btn-back" onclick="goStep(4)"><i class="bi bi-arrow-left me-2"></i>Back</button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary rounded"
+                onclick="showResetModal()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+              </button>
+              <button type="button" class="btn-next" onclick="submitBooking()">
+                <i class="bi bi-lock-fill me-2"></i>Confirm &amp; Book
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /col-lg-8 -->
+
+      <!-- ═══════════════ LEDGER SIDEBAR ═══════════════ -->
+      <div class="col-lg-4">
+        <div class="wizz-sticky-sidebar p-4 rounded bg-white">
+          <h6 class="fw-bold text-uppercase mb-3" style="font-size:.7rem;letter-spacing:.08em;color:#9ca3af">
+            <i class="bi bi-receipt me-1"></i>Booking Summary
+          </h6>
+          <div class="d-flex align-items-center gap-2 mb-3 p-2 bg-light rounded small">
+            <span class="fw-bold" id="lgrFrom" style="color:var(--navy)">—</span>
+            <i class="bi bi-arrow-right text-muted" style="font-size:.65rem"></i>
+            <span class="fw-bold" id="lgrTo" style="color:var(--navy)">—</span>
+          </div>
+          <div class="ledger-row"><span class="ledger-lbl">Base fare/seat</span><span class="ledger-val">€ <span id="lgrBase">0.00</span></span></div>
+          <div class="ledger-row"><span class="ledger-lbl">Cabin class</span><span class="ledger-val" id="lgrClass">Economy</span></div>
+          <div class="ledger-row"><span class="ledger-lbl">Fare tier</span><span class="ledger-val" id="lgrTier">Smart</span></div>
+          <div class="ledger-row"><span class="ledger-lbl">Passengers</span><span class="ledger-val"><span id="lgrPax">1</span>× ticket</span></div>
+          <div class="ledger-row"><span class="ledger-lbl">Baggage</span><span class="ledger-val" id="lgrBag">Included</span></div>
+          <div class="ledger-row"><span class="ledger-lbl">Depart date</span><span class="ledger-val" id="lgrDate">—</span></div>
+          <div class="ledger-total">
+            <span class="ledger-total-lbl">TOTAL</span>
+            <span class="ledger-total-val">€ <span id="lgrTotal">0.00</span></span>
+          </div>
+          <div class="mt-3 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0">
+            <small class="text-success fw-semibold d-flex align-items-center gap-1">
+              <i class="bi bi-shield-check-fill"></i> 256-bit encrypted checkout
+            </small>
+          </div>
+          <div class="mt-4 pt-3 border-top">
+            <small class="text-muted fw-semibold d-block mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em">Progress</small>
+            <div class="d-flex flex-column gap-1">
+              <div class="small d-flex align-items-center gap-2" id="ssp1"><i class="bi bi-circle-fill" style="font-size:.45rem;color:var(--mag)"></i> Flight selection</div>
+              <div class="small d-flex align-items-center gap-2" id="ssp2"><i class="bi bi-circle text-muted" style="font-size:.45rem"></i> Passengers</div>
+              <div class="small d-flex align-items-center gap-2" id="ssp3"><i class="bi bi-circle text-muted" style="font-size:.45rem"></i> Passports</div>
+              <div class="small d-flex align-items-center gap-2" id="ssp4"><i class="bi bi-circle text-muted" style="font-size:.45rem"></i> Extras</div>
+              <div class="small d-flex align-items-center gap-2" id="ssp5"><i class="bi bi-circle text-muted" style="font-size:.45rem"></i> Payment</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </form>
+</main>
+
+<!-- ── CANCEL BOOKING CONFIRMATION MODAL ─────────────────────── -->
+<div id="cancelModalBackdrop" style="display:none;position:fixed;inset:0;background:rgba(7,18,66,.55);backdrop-filter:blur(5px);z-index:3000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;max-width:420px;width:92vw;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.25);text-align:center;animation:stepIn .25s ease">
+    <div style="font-size:2.8rem;margin-bottom:12px">✈️</div>
+    <h5 style="font-weight:800;color:var(--navy);margin-bottom:10px">Leave this booking?</h5>
+    <p style="color:#6b7280;font-size:.9rem;margin-bottom:24px">Your booking details will be lost if you leave now. Are you sure you want to cancel?</p>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button onclick="cancelModalStay()" style="flex:1;max-width:160px;padding:12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-weight:700;cursor:pointer;color:#374151;font-size:.9rem">
+        <i class="bi bi-arrow-left me-1"></i>Stay
+      </button>
+      <button onclick="cancelModalLeave()" style="flex:1;max-width:160px;padding:12px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-weight:700;cursor:pointer;font-size:.9rem">
+        <i class="bi bi-x-lg me-1"></i>Leave anyway
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- GRAND CONFIRMATION OVERLAY -->
+<div id="grandConfirmOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,var(--navy) 0%,#1e3a8a 50%,#0f172a 100%);align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;padding:30px">
+  <div id="gcoInner" style="opacity:0;transform:scale(.8);transition:opacity .6s ease,transform .6s cubic-bezier(.34,1.56,.64,1)">
+    <div id="gcoPlane" style="font-size:4.5rem;display:block;transition:transform 1.2s ease">✈️</div>
+    <div style="font-size:2rem;font-weight:800;margin:18px 0 10px;letter-spacing:-.01em;line-height:1.2" id="gcoTitle">Booking Confirmed!</div>
+    <div style="font-size:1.1rem;opacity:.75;font-weight:500" id="gcoSub">See you on Board! 🛫</div>
+    <div style="margin-top:28px;display:flex;align-items:center;justify-content:center;gap:8px;opacity:.5;font-size:.85rem">
+      <div class="spinner-border spinner-border-sm text-white" role="status"></div>
+      Returning to home…
+    </div>
+  </div>
+  <!-- confetti dots -->
+  <div id="gcoConfetti" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<!-- ── RESET CONFIRMATION MODAL ──────────────────────────────────── -->
+<div id="resetModalBackdrop" style="display:none;position:fixed;inset:0;background:rgba(7,18,66,.55);backdrop-filter:blur(5px);z-index:3001;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;max-width:400px;width:92vw;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.25);text-align:center;animation:stepIn .25s ease">
+    <div style="font-size:2.5rem;margin-bottom:12px">🔄</div>
+    <h5 style="font-weight:800;color:var(--navy);margin-bottom:10px">Reset booking?</h5>
+    <p style="color:#6b7280;font-size:.9rem;margin-bottom:24px">All entered details will be cleared and you'll start over from Step 1.</p>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button onclick="resetModalCancel()" style="flex:1;max-width:150px;padding:12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-weight:700;cursor:pointer;color:#374151;font-size:.9rem">
+        <i class="bi bi-arrow-left me-1"></i>Keep going
+      </button>
+      <button onclick="resetModalConfirm()" style="flex:1;max-width:150px;padding:12px;border-radius:8px;border:none;background:var(--mag);color:#fff;font-weight:700;cursor:pointer;font-size:.9rem">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Yes, reset
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+/* ── FIX: USER-SCOPED localStorage KEYS ─────────────────────────
+   Read the session user ID injected by Thymeleaf into the meta tag.
+   All localStorage keys are prefixed with uid_<userId>_ so that data
+   written for one user is never visible to a different logged-in user
+   on the same browser.
+──────────────────────────────────────────────────────────────── */
+(function() {
+  /* FIX: Read from 'myfly-session-userid' meta tag (numeric user ID set by
+     UserController into session.userId).  profile.html uses the same meta tag
+     name and the same prefix format, so both pages produce identical localStorage
+     keys (e.g. uid_7_myfly_local_bookings) and data written here is always
+     visible there.  The old 'myfly-session-user' tag held a username string
+     which never matched the numeric ID that profile.html expected. */
+  window._lsKey = function(base) {
+    var metaUid = document.querySelector('meta[name="myfly-session-userid"]');
+    var uid = (metaUid && metaUid.getAttribute('content')) ? metaUid.getAttribute('content') : '';
+    if (!uid || uid === '0') {
+      // Fallback: read from the userId hidden input (populated on DOMContentLoaded)
+      var uidInput = document.getElementById('userId');
+      uid = (uidInput && uidInput.value.trim() && uidInput.value.trim() !== '0') ? uidInput.value.trim() : 'guest';
+    }
+    return 'uid_' + uid + '_' + base;
+  };
+})();
+
+/* ── STATE ──────────────────────────────────────────────────── */
+var curStep=1,selSrc=null,selDst=null,selDepDate=null,selRetDate=null,basePrice=0;
+/* Feature 4: per-date prices tracked alongside selected dates */
+var selDepPrice=0,selRetPrice=0;
+var calSt={dep:{y:new Date().getFullYear(),m:new Date().getMonth()},ret:{y:new Date().getFullYear(),m:new Date().getMonth()}};
+
+/* ── CITIES ─────────────────────────────────────────────────── */
+var CITIES=[
+  {name:'Tirana',    country:'Albania',        iata:'TIA',flag:'🇦🇱'},
+  {name:'Amsterdam', country:'Netherlands',    iata:'AMS',flag:'🇳🇱'},
+  {name:'Athens',    country:'Greece',         iata:'ATH',flag:'🇬🇷'},
+  {name:'Barcelona', country:'Spain',          iata:'BCN',flag:'🇪🇸'},
+  {name:'Belgrade',  country:'Serbia',         iata:'BEG',flag:'🇷🇸'},
+  {name:'Berlin',    country:'Germany',        iata:'BER',flag:'🇩🇪'},
+  {name:'Brussels',  country:'Belgium',        iata:'BRU',flag:'🇧🇪'},
+  {name:'Bucharest', country:'Romania',        iata:'OTP',flag:'🇷🇴'},
+  {name:'Budapest',  country:'Hungary',        iata:'BUD',flag:'🇭🇺'},
+  {name:'Copenhagen',country:'Denmark',        iata:'CPH',flag:'🇩🇰'},
+  {name:'Dubai',     country:'UAE',            iata:'DXB',flag:'🇦🇪'},
+  {name:'Dublin',    country:'Ireland',        iata:'DUB',flag:'🇮🇪'},
+  {name:'Frankfurt', country:'Germany',        iata:'FRA',flag:'🇩🇪'},
+  {name:'Geneva',    country:'Switzerland',    iata:'GVA',flag:'🇨🇭'},
+  {name:'Helsinki',  country:'Finland',        iata:'HEL',flag:'🇫🇮'},
+  {name:'Istanbul',  country:'Turkey',         iata:'IST',flag:'🇹🇷'},
+  {name:'Kyiv',      country:'Ukraine',        iata:'KBP',flag:'🇺🇦'},
+  {name:'Lisbon',    country:'Portugal',       iata:'LIS',flag:'🇵🇹'},
+  {name:'Ljubljana', country:'Slovenia',       iata:'LJU',flag:'🇸🇮'},
+  {name:'London',    country:'United Kingdom', iata:'LHR',flag:'🇬🇧'},
+  {name:'Madrid',    country:'Spain',          iata:'MAD',flag:'🇪🇸'},
+  {name:'Milan',     country:'Italy',          iata:'MXP',flag:'🇮🇹'},
+  {name:'Munich',    country:'Germany',        iata:'MUC',flag:'🇩🇪'},
+  {name:'Oslo',      country:'Norway',         iata:'OSL',flag:'🇳🇴'},
+  {name:'Paris',     country:'France',         iata:'CDG',flag:'🇫🇷'},
+  {name:'Prague',    country:'Czech Republic', iata:'PRG',flag:'🇨🇿'},
+  {name:'Rome',      country:'Italy',          iata:'FCO',flag:'🇮🇹'},
+  {name:'Sarajevo',  country:'Bosnia',         iata:'SJJ',flag:'🇧🇦'},
+  {name:'Seville',   country:'Spain',          iata:'SVQ',flag:'🇪🇸'},
+  {name:'Skopje',    country:'N. Macedonia',   iata:'SKP',flag:'🇲🇰'},
+  {name:'Sofia',     country:'Bulgaria',       iata:'SOF',flag:'🇧🇬'},
+  {name:'Stockholm', country:'Sweden',         iata:'ARN',flag:'🇸🇪'},
+  {name:'Vienna',    country:'Austria',        iata:'VIE',flag:'🇦🇹'},
+  {name:'Warsaw',    country:'Poland',         iata:'WAW',flag:'🇵🇱'},
+  {name:'Zagreb',    country:'Croatia',        iata:'ZAG',flag:'🇭🇷'},
+  {name:'Zurich',    country:'Switzerland',    iata:'ZRH',flag:'🇨🇭'}
+];
+
+function allCities(){
+  var sel=document.getElementById('sourceHidden');
+  var names=new Set(CITIES.map(function(c){return c.name.toLowerCase();}));
+  if(sel){Array.from(sel.options).filter(function(o){return o.value;}).forEach(function(o){
+    if(!names.has(o.value.toLowerCase())){CITIES.push({name:o.value,country:'',iata:o.value.substring(0,3).toUpperCase(),flag:'✈'});names.add(o.value.toLowerCase());}
+  });}
+  return CITIES;
+}
+
+/* ── CITY DROPDOWN ──────────────────────────────────────────── */
+function renderCityList(side,filter){
+  var listEl=document.getElementById('list'+(side==='src'?'Src':'Dst'));
+  var other=side==='src'?selDst:selSrc;
+  var cities=allCities();
+  var f=filter.toLowerCase();
+  var filtered=f?cities.filter(function(c){return c.name.toLowerCase().indexOf(f)>-1||c.iata.toLowerCase().indexOf(f)>-1;}):cities;
+  if(!filtered.length){listEl.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:.85rem">No results</div>';return;}
+  listEl.innerHTML=filtered.map(function(c){
+    var isSel=side==='src'?(selSrc&&selSrc.iata===c.iata):(selDst&&selDst.iata===c.iata);
+    var isExcl=other&&other.iata===c.iata;
+    return '<div class="city-row'+(isSel?' sel':'')+(isExcl?' excl':'')+'" onclick="pickCity(\''+side+'\',\''+c.name+'\',\''+c.country+'\',\''+c.iata+'\',\''+c.flag+'\')">'
+      +'<span class="city-flag">'+c.flag+'</span>'
+      +'<div style="flex:1"><div class="city-name">'+c.name+'</div><div class="city-country">'+c.country+'</div></div>'
+      +'<span class="city-iata-badge">'+c.iata+'</span></div>';
+  }).join('');
+}
+
+function toggleCity(side){
+  var dd=document.getElementById('dd'+(side==='src'?'Src':'Dst'));
+  var tr=document.getElementById('trig'+(side==='src'?'Src':'Dst'));
+  var isOpen=dd.classList.contains('open');
+  closeAllDD();
+  if(!isOpen){renderCityList(side,'');dd.classList.add('open');tr.classList.add('open');document.getElementById('in'+(side==='src'?'Src':'Dst')).focus();}
+}
+function filterCity(side,val){renderCityList(side,val);}
+function closeAllDD(){['Src','Dst'].forEach(function(s){document.getElementById('dd'+s).classList.remove('open');document.getElementById('trig'+s).classList.remove('open');});}
+
+function pickCity(side,name,country,iata,flag){
+  var city={name:name,country:country,iata:iata,flag:flag};
+  if(side==='src')selSrc=city;else selDst=city;
+  var txt=document.getElementById('txt'+(side==='src'?'Src':'Dst'));
+  var iataEl=document.getElementById('iata'+(side==='src'?'Src':'Dst'));
+  txt.textContent=flag+' '+name;txt.classList.remove('ph');
+  iataEl.textContent=iata;iataEl.style.display='inline';
+  var sel=document.getElementById(side==='src'?'sourceHidden':'destinationHidden');
+  var matched=false;
+  Array.from(sel.options).forEach(function(o){if(o.value.toLowerCase()===name.toLowerCase()){sel.value=o.value;matched=true;}});
+  if(!matched)sel.value=name;
+  closeAllDD();
+  updateRouteBadge();
+  if(selSrc&&selDst){fetchPrice(selSrc.name,selDst.name);checkShowTimeFrame();}
+}
+
+function swapCities(){
+  var tmp=selSrc;selSrc=selDst;selDst=tmp;
+  ['src','dst'].forEach(function(s){
+    var city=s==='src'?selSrc:selDst;
+    var txt=document.getElementById('txt'+(s==='src'?'Src':'Dst'));
+    var iataEl=document.getElementById('iata'+(s==='src'?'Src':'Dst'));
+    var sel=document.getElementById(s==='src'?'sourceHidden':'destinationHidden');
+    if(city){txt.textContent=city.flag+' '+city.name;txt.classList.remove('ph');iataEl.textContent=city.iata;iataEl.style.display='inline';
+      Array.from(sel.options).forEach(function(o){if(o.value.toLowerCase()===city.name.toLowerCase())sel.value=o.value;});
+    }else{txt.textContent=s==='src'?'Select departure city':'Select destination city';txt.classList.add('ph');iataEl.style.display='none';sel.value='';}
+  });
+  var ic=document.getElementById('swapIcon');ic.style.transform='rotate(180deg)';setTimeout(function(){ic.style.transform='';},400);
+  updateRouteBadge();
+  if(selSrc&&selDst){fetchPrice(selSrc.name,selDst.name);checkShowTimeFrame();}
+}
+
+/* ── CALENDAR ───────────────────────────────────────────────── */
+/* ── DYNAMIC DATE PRICING (Feature 4) ──────────────────────────
+   Each calendar date gets a unique price based on:
+   - Route seed (same routes have similar base)
+   - Day-of-week multiplier (Fri/Sat premium, Mon/Tue discount)
+   - Week-of-year offset so prices vary across months
+   This replaces the old flat getSimPrice() per-route value.
+──────────────────────────────────────────────────────────────── */
+function getRouteSeed(src,dst){
+  return (src+dst).split('').reduce(function(a,c){return a+c.charCodeAt(0);},0);
+}
+function getDayPrice(src,dst,year,month,day){
+  var seed=getRouteSeed(src,dst);
+  var base=59+(seed%120); // 59–178 base range per route
+  var dow=new Date(year,month,day).getDay(); // 0=Sun … 6=Sat
+  // Day-of-week multiplier: weekends premium, Mon/Tue cheaper
+  var dowMult=[1.08,0.90,0.88,1.00,1.05,1.22,1.18][dow];
+  // Week variation: hash of year+month+week to add €0–40 jitter
+  var weekHash=((year*53+month*7+Math.floor(day/7))*1103515245+seed)&0x7fffffff;
+  var weekJitter=weekHash%40;
+  return Math.round(base*dowMult+weekJitter);
+}
+
+function getAvailDates(src,dst,year,month){
+  var seed=getRouteSeed(src,dst);
+  var days=new Date(year,month+1,0).getDate();
+  var avail=new Set();
+  for(var d=1;d<=days;d++){var h=(seed*1103515245+d*12345+month*999)&0x7fffffff;if(h%10<6)avail.add(d);}
+  return avail;
+}
+// Keep getSimPrice for legacy use (route badge initial display), but it now uses
+// the same day-pricing formula for today as a representative value.
+function getSimPrice(src,dst){
+  var t=new Date();
+  return getDayPrice(src,dst,t.getFullYear(),t.getMonth(),t.getDate()||1);
+}
+
+function buildCal(which){
+  var st=calSt[which];
+  var panelEl=document.getElementById('calPanel'+(which==='dep'?'Dep':'Ret'));
+  var today=new Date();today.setHours(0,0,0,0);
+  var firstDow=new Date(st.y,st.m,1).getDay();
+  var dim=new Date(st.y,st.m+1,0).getDate();
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var srcN=selSrc?selSrc.name:'A';
+  var dstN=selDst?selDst.name:'B';
+  var avail=getAvailDates(srcN,dstN,st.y,st.m);
+  var html='<div class="cal-nav">'
+    +'<button type="button" class="cal-nav-btn" onclick="shiftCal(\''+which+'\',-1)"><i class="bi bi-chevron-left"></i></button>'
+    +'<span class="cal-month">'+months[st.m]+' '+st.y+'</span>'
+    +'<button type="button" class="cal-nav-btn" onclick="shiftCal(\''+which+'\',1)"><i class="bi bi-chevron-right"></i></button>'
+    +'</div><div class="cal-grid">'
+    +'<div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div>'
+    +'<div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>';
+  for(var i=0;i<firstDow;i++)html+='<div class="cal-day"></div>';
+  for(var d=1;d<=dim;d++){
+    var dt=new Date(st.y,st.m,d);
+    var isPast=dt<today;
+    var hasF=avail.has(d);
+    var iso=st.y+'-'+String(st.m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var isSel=(which==='dep'&&selDepDate===iso)||(which==='ret'&&selRetDate===iso);
+    var cls='cal-day';
+    if(isPast)cls+=' past';
+    else if(hasF)cls+=' avail has-flight';
+    else cls+=' avail no-flight';
+    if(isSel)cls+=' selected';
+    // Per-day dynamic price (Feature 4)
+    var dayP=hasF&&!isPast?getDayPrice(srcN,dstN,st.y,st.m,d):null;
+    var price=dayP!==null?'<div class="cal-price">€'+dayP+'</div>':'';
+    var click=isPast?'':'onclick="pickDate(\''+which+'\',\''+iso+'\','+hasF+','+( dayP!==null?dayP:0)+')"';
+    html+='<div class="'+cls+'" '+click+'>'+d+price+'</div>';
+  }
+  html+='</div><div class="cal-legend">'
+    +'<span><span class="cal-dot" style="background:var(--green)"></span>Available</span>'
+    +'<span><span class="cal-dot" style="background:#fca5a5"></span>No flights</span>'
+    +'</div>';
+  panelEl.innerHTML=html;
+}
+
+function toggleCal(which){
+  var panelEl=document.getElementById('calPanel'+(which==='dep'?'Dep':'Ret'));
+  var trigEl=document.getElementById('calTrig'+(which==='dep'?'Dep':'Ret'));
+  var isOpen=panelEl.classList.contains('open');
+  closeAllCals();
+  if(!isOpen){buildCal(which);panelEl.classList.add('open');trigEl.classList.add('open');}
+}
+function closeAllCals(){['Dep','Ret'].forEach(function(s){document.getElementById('calPanel'+s).classList.remove('open');document.getElementById('calTrig'+s).classList.remove('open');});}
+function shiftCal(which,delta){
+  calSt[which].m+=delta;
+  if(calSt[which].m>11){calSt[which].m=0;calSt[which].y++;}
+  if(calSt[which].m<0){calSt[which].m=11;calSt[which].y--;}
+  buildCal(which);
+}
+
+function pickDate(which,iso,hasF,dayPrice){
+  if(!hasF){showToast('No flights available on this date — please select a date with a green dot.',true);return;}
+  if(which==='dep'){
+    selDepDate=iso;
+    selDepPrice=dayPrice||0;
+    document.getElementById('departureDateH').value=iso;
+    var txt=document.getElementById('calTxtDep');txt.textContent=fmtDateDisp(iso);txt.classList.remove('ph');
+    document.getElementById('lgrDate').textContent=fmtDateDisp(iso);
+    if(selRetDate&&selRetDate<=iso){clearRetDate();}
+  }else{
+    if(selDepDate&&iso<=selDepDate){showToast('Return date must be after departure date.',true);return;}
+    selRetDate=iso;
+    selRetPrice=dayPrice||0;
+    document.getElementById('returnDateH').value=iso;
+    var txt2=document.getElementById('calTxtRet');txt2.textContent=fmtDateDisp(iso);txt2.classList.remove('ph');
+  }
+  buildCal(which);closeAllCals();calcPrice();checkShowTimeFrame();
+}
+function clearRetDate(){
+  selRetDate=null;selRetPrice=0;document.getElementById('returnDateH').value='';
+  var t=document.getElementById('calTxtRet');t.textContent='Select return date';t.classList.add('ph');
+}
+function fmtDateDisp(iso){
+  var d=new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+document.getElementById('rtRound').addEventListener('change',function(){document.getElementById('retDateCol').style.display='';});
+document.getElementById('rtOne').addEventListener('change',function(){document.getElementById('retDateCol').style.display='none';clearRetDate();});
+
+/* ── PRICE ENGINE (Feature 4B/C) ────────────────────────────────
+   basePrice = depDatePrice + retDatePrice (both dynamic per-day values).
+   If dates not yet selected, fall back to API or route sim price.
+   Tier markups are progressive additions on top of the base low fare:
+     Light  = base (no markup)
+     Smart  = base + €20
+     Pro    = base + €65
+──────────────────────────────────────────────────────────────── */
+async function fetchPrice(src,dst){
+  // FIX: Only store the API base price for later use.
+  // Do NOT call calcPrice() here — prices must only appear after a date is chosen.
+  try{
+    var r=await fetch('/api/flights/price?source='+encodeURIComponent(src)+'&destination='+encodeURIComponent(dst));
+    if(r.ok){var data=await r.json();basePrice=(typeof data==='object'&&data!==null)?(data.price||0):parseFloat(data)||0;}
+    else basePrice=0;
+  }catch(e){basePrice=0;}
+  // Only refresh price display if user has already picked a date
+  if(selDepDate) calcPrice();
+}
+
+function calcPrice(){
+  // FIX: No prices shown until departure date is selected.
+  // Before a date is chosen every price field shows a dash so users
+  // are never shown a misleading simulated or fallback price.
+  if(!selDepDate){
+    document.querySelectorAll('.tierValLight').forEach(function(el){el.textContent='—';});
+    document.querySelectorAll('.tierValSmart').forEach(function(el){el.textContent='—';});
+    document.querySelectorAll('.tierValPro').forEach(function(el){el.textContent='—';});
+    document.getElementById('lgrBase').textContent='—';
+    document.getElementById('lgrTotal').textContent='—';
+    document.getElementById('rbPrice').textContent='€ —';
+    document.getElementById('totalPriceH').value='';
+    document.getElementById('summDate').textContent='Date: —';
+    document.getElementById('summTotal').textContent='€ —';
+    var route=selSrc&&selDst?selSrc.name+' → '+selDst.name:'— → —';
+    document.getElementById('summRoute').textContent=route;
+    return;
+  }
+
+  // Departure date selected: compute real per-date prices
+  var bp=selDepPrice+(selRetPrice||0);
+  var cls=document.getElementById('flightClass').value;
+  var pax=parseInt(document.getElementById('tickets').value)||1;
+  var cm=1;if(cls==='Business')cm=1.5;else if(cls==='First Class')cm=2.0;
+  var tier=(document.querySelector('input[name="flightTier"]:checked')||{value:'Smart'}).value;
+
+  var lightPrice=Math.round(bp*cm);
+  var smartPrice=Math.round(bp*cm+20);
+  var proPrice  =Math.round(bp*cm+65);
+
+  var tm=0;
+  if(tier==='Light')tm=0;
+  else if(tier==='Smart')tm=20;
+  else tm=65;
+
+  var bag=(document.querySelector('input[name="baggage"]:checked')||{value:'20'}).value;
+  var bm=0;if(bag==='10')bm=15;else if(bag==='26')bm=32;else if(bag==='32')bm=48;
+  var single=Math.max(10,bp*cm+tm);
+  var total=(single+bm+seatExtra)*pax;
+
+  document.querySelectorAll('.tierValLight').forEach(function(el){el.textContent=lightPrice.toFixed(2);});
+  document.querySelectorAll('.tierValSmart').forEach(function(el){el.textContent=smartPrice.toFixed(2);});
+  document.querySelectorAll('.tierValPro').forEach(function(el){el.textContent=proPrice.toFixed(2);});
+  document.getElementById('lgrBase').textContent=single.toFixed(2);
+  document.getElementById('lgrClass').textContent=cls;
+  document.getElementById('lgrTier').textContent=tier;
+  document.getElementById('lgrPax').textContent=pax;
+  document.getElementById('lgrBag').textContent=bm>0?'+€'+bm.toFixed(2):'Included';
+  document.getElementById('lgrTotal').textContent=total.toFixed(2);
+  document.getElementById('rbPrice').textContent='€ '+single.toFixed(2);
+  document.getElementById('totalPriceH').value=total.toFixed(2);
+  var route=selSrc&&selDst?selSrc.name+' → '+selDst.name:'— → —';
+  document.getElementById('summRoute').textContent=route;
+  document.getElementById('summDate').textContent='Depart: '+fmtDateDisp(selDepDate);
+  document.getElementById('summTotal').textContent='€ '+total.toFixed(2);
+}
+function updateRouteBadge(){
+  var from=selSrc?selSrc.name:'—';var to=selDst?selDst.name:'—';
+  document.getElementById('rbFrom').textContent=from;document.getElementById('rbTo').textContent=to;
+  document.getElementById('lgrFrom').textContent=from;document.getElementById('lgrTo').textContent=to;
+  if(selSrc&&selDst){document.getElementById('routeBadge').classList.remove('d-none');document.getElementById('routeBadge').classList.add('d-flex');}
+}
+
+function onTierChange(inp){
+  document.querySelectorAll('.tier-card').forEach(function(c){c.classList.remove('active');});
+  inp.closest('.tier-card').classList.add('active');calcPrice();
+}
+function onBagChange(inp){
+  document.querySelectorAll('.bag-card').forEach(function(c){c.classList.remove('active');});
+  inp.closest('.bag-card').classList.add('active');calcPrice();
+}
+
+/* ── PAX NAMES ──────────────────────────────────────────────── */
+function adjPax(d){var el=document.getElementById('tickets');el.value=Math.max(1,Math.min(9,(parseInt(el.value)||1)+d));onPaxChange();}
+function onPaxChange(){calcPrice();renderPaxNames();}
+function renderPaxNames(){
+  var n=parseInt(document.getElementById('tickets').value)||1;
+  var wrap=document.getElementById('paxNamesWrap');wrap.innerHTML='';
+  for(var i=0;i<n;i++){
+    wrap.innerHTML+='<div class="p-3 rounded border mb-2 bg-light"><div class="small fw-bold text-muted mb-2">Passenger '+(i+1)+'</div>'
+      +'<div class="row g-2"><div class="col-md-6"><input type="text" name="paxFirst_'+i+'" class="form-control form-control-sm" placeholder="First name" required></div>'
+      +'<div class="col-md-6"><input type="text" name="paxLast_'+i+'" class="form-control form-control-sm" placeholder="Last name" required></div></div></div>';
+  }
+}
+
+/* ── PASSPORT FORMS ─────────────────────────────────────────── */
+function renderPassportForms(){
+  var n=parseInt(document.getElementById('tickets').value)||1;
+  var wrap=document.getElementById('passportFormsWrap');wrap.innerHTML='';
+  for(var i=0;i<n;i++){
+    wrap.innerHTML+='<div class="passport-card">'
+      +'<div class="passport-card-hdr"><span><i class="bi bi-passport me-2 text-primary"></i>Passenger '+(i+1)+'</span>'
+      +'<span class="badge bg-light text-dark border" style="font-size:.68rem">Travel Document</span></div>'
+      +'<div class="row g-3">'
+      +'<div class="col-md-4"><label class="form-label small fw-bold text-muted">Passport Number *</label>'
+      +'<input type="text" id="ppNum_'+i+'" name="passport_num_'+i+'" class="form-control text-uppercase" placeholder="AB1234567" maxlength="9" required oninput="this.value=this.value.toUpperCase()">'
+      +'<div class="pp-hint">7–9 alphanumeric characters</div></div>'
+      +'<div class="col-md-4"><label class="form-label small fw-bold text-muted">Issuing Country *</label>'
+      +'<input type="text" name="passport_country_'+i+'" class="form-control" placeholder="Albania" required></div>'
+      +'<div class="col-md-4"><label class="form-label small fw-bold text-muted">Expiry Date *</label>'
+      +'<input type="date" name="passport_expiry_'+i+'" class="form-control" required></div>'
+      +'<div class="col-md-6"><label class="form-label small fw-bold text-muted">Nationality *</label>'
+      +'<input type="text" name="passport_nationality_'+i+'" class="form-control" placeholder="Albanian" required></div>'
+      +'<div class="col-md-6"><label class="form-label small fw-bold text-muted">Date of Birth *</label>'
+      +'<input type="date" name="passport_dob_'+i+'" class="form-control" required></div>'
+      +'</div></div>';
+  }
+}
+
+/* ── PAYMENT ────────────────────────────────────────────────── */
+function selPay(method,card){
+  document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');c.querySelector('i').className='bi bi-circle text-muted ms-auto';});
+  card.classList.add('selected');card.querySelector('i').className='bi bi-check-circle-fill text-primary ms-auto';
+  document.getElementById('payMethodH').value=method;
+}
+function fmtCard(inp){var v=inp.value.replace(/\D/g,'').substring(0,16);inp.value=v.replace(/(.{4})/g,'$1  ').trim();}
+function fmtExp(inp){var v=inp.value.replace(/\D/g,'').substring(0,4);if(v.length>=2)v=v.substring(0,2)+' / '+v.substring(2);inp.value=v;}
+
+/* ── USERNAME LOOKUP ─────────────────────────────────────────── */
+/* ── AUTO-FILL userId FROM SESSION (prevents [object Object] if user is logged in) ─ */
+document.addEventListener('DOMContentLoaded', function() {
+  var metaUid = document.querySelector('meta[name="myfly-session-userid"]');
+  if (metaUid) {
+    var uid = parseInt(metaUid.getAttribute('content'), 10);
+    if (!isNaN(uid) && uid > 0) {
+      document.getElementById('userId').value = uid;
+      var st = document.getElementById('unStatus');
+      var ht = document.getElementById('unHint');
+      if (st) st.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+      if (ht) ht.innerHTML = '<span class="text-success fw-semibold">✓ Logged-in account linked (ID ' + uid + ')</span>';
+    }
+  }
+});
+
+document.getElementById('usernameIn').addEventListener('input',async function(){
+  var u=this.value.trim();
+  var st=document.getElementById('unStatus');var ht=document.getElementById('unHint');
+  if(!u){document.getElementById('userId').value='';st.innerHTML='<i class="bi bi-circle text-muted"></i>';return;}
+  try{
+    var r=await fetch('/api/users/idByUsername?username='+encodeURIComponent(u));
+    if(r.ok){
+      var data=await r.json();
+      // API may return a plain integer OR an object like {id:5, username:'...'} or {userId:5}
+      var id=typeof data==='object'&&data!==null
+        ?(data.id||data.userId||data.user_id||Object.values(data)[0])
+        :data;
+      id=parseInt(id,10);
+      document.getElementById('userId').value=isNaN(id)?'':id;
+      st.innerHTML='<i class="bi bi-check-circle-fill text-success"></i>';
+      ht.innerHTML='<span class="text-success fw-semibold">✓ Account verified — ID '+id+'</span>';
+    }
+    else{document.getElementById('userId').value='';st.innerHTML='<i class="bi bi-x-circle-fill text-danger"></i>';ht.innerHTML='<span class="text-danger">Username not found</span>';}
+  }catch(e){document.getElementById('userId').value='';}
+});
+
+/* ── STEP NAVIGATION ────────────────────────────────────────── */
+function goStep(n){
+  if(n>curStep){
+    if(curStep===1){
+      if(!selSrc||!selDst){showToast('Please select departure and destination cities.',true);return;}
+      if(!selDepDate){showToast('Please select a departure date from the calendar.',true);return;}
+    }
+    if(curStep===2){
+      if(!document.getElementById('usernameIn').value.trim()){showToast('Please enter your username.',true);return;}
+      if(!document.getElementById('userId').value){showToast('Username not found. Please enter your registered username.',true);return;}
+    }
+    if(curStep===3){
+      var ppFields=document.querySelectorAll('[id^="ppNum_"]');
+      for(var i=0;i<ppFields.length;i++){
+        if(!ppFields[i].value.trim()){showToast('Please fill in all passport numbers.',true);ppFields[i].focus();return;}
+        if(ppFields[i].value.trim().length<7){showToast('Passport number must be at least 7 characters.',true);ppFields[i].focus();return;}
+      }
+    }
+  }
+  if(n===2)renderPaxNames();
+  if(n===3)renderPassportForms();
+  if(n===5){
+    document.getElementById('summRoute').textContent=selSrc&&selDst?selSrc.name+' → '+selDst.name:'—';
+    document.getElementById('summDate').textContent=selDepDate?'Depart: '+fmtDateDisp(selDepDate):'—';
+    document.getElementById('summTotal').textContent='€ '+document.getElementById('lgrTotal').textContent;
+  }
+  document.querySelectorAll('.step-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('sp'+n).classList.add('active');
+  for(var i=1;i<=5;i++){
+    var lbl=document.getElementById('lbl'+i);lbl.classList.remove('active','done');
+    if(i<n)lbl.classList.add('done');if(i===n)lbl.classList.add('active');
+  }
+  for(var j=1;j<=5;j++){
+    var el=document.getElementById('ssp'+j);var ic=el.querySelector('i');
+    if(j<n){ic.className='bi bi-check-circle-fill';ic.style.color='var(--green)';ic.style.fontSize='.55rem';}
+    else if(j===n){ic.className='bi bi-circle-fill';ic.style.color='var(--mag)';ic.style.fontSize='.45rem';}
+    else{ic.className='bi bi-circle text-muted';ic.style.color='';ic.style.fontSize='.45rem';}
+  }
+  curStep=n;
+  document.querySelector('.progress-journey').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── SEAT PREFERENCE — fare-aware pricing ───────────────────── */
+var seatExtra=0;
+function updateSeatUI(){
+  var tier=(document.querySelector('input[name="flightTier"]:checked')||{value:'Smart'}).value;
+  var isLight=tier==='Light';
+  document.getElementById('seatLightNotice').style.display=isLight?'block':'none';
+  // Light: paid seats; Smart/Pro: free
+  var windowCost=isLight?8:0;
+  var middleCost=isLight?5:0;
+  var aisleCost=isLight?8:0;
+  document.getElementById('seatCostWindow').textContent=isLight?'+ €'+windowCost:'Free';
+  document.getElementById('seatCostMiddle').textContent=isLight?'+ €'+middleCost:'Free';
+  document.getElementById('seatCostAisle').textContent=isLight?'+ €'+aisleCost:'Free';
+  // Recalc seat extra based on current selection
+  var sel=(document.querySelector('input[name="seatPref"]:checked')||{value:'random'}).value;
+  if(!isLight||sel==='random')seatExtra=0;
+  else if(sel==='middle')seatExtra=middleCost;
+  else seatExtra=windowCost; // window and aisle same cost
+  calcPrice();
+}
+function onSeatChange(inp){
+  document.querySelectorAll('#seatOptionsWrap .bag-card').forEach(function(c){c.classList.remove('active');});
+  inp.closest('.bag-card').classList.add('active');
+  updateSeatUI();
+}
+/* FIX (Feature 3): onTierChange is defined AFTER this point — do NOT try to
+   capture it into _origTierChange at parse time (it would be undefined).
+   Instead, call the original logic inline and also call updateSeatUI(). */
+function onTierChange(inp){
+  document.querySelectorAll('.tier-card').forEach(function(c){c.classList.remove('active');});
+  inp.closest('.tier-card').classList.add('active');
+  calcPrice();
+  updateSeatUI();
+}
+
+/* ── CANCEL BOOKING MODAL ───────────────────────────────────── */
+var _pendingNavUrl=null;
+var _bookingStarted=false; // becomes true once user interacts with step 1
+
+function bookingIsInProgress(){
+  return _bookingStarted||(selSrc||selDst||selDepDate)?true:false;
+}
+
+function showCancelModal(url){
+  _pendingNavUrl=url;
+  var bd=document.getElementById('cancelModalBackdrop');
+  bd.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function cancelModalStay(){
+  document.getElementById('cancelModalBackdrop').style.display='none';
+  document.body.style.overflow='';
+  _pendingNavUrl=null;
+}
+function cancelModalLeave(){
+  document.getElementById('cancelModalBackdrop').style.display='none';
+  document.body.style.overflow='';
+  if(_pendingNavUrl)window.location.href=_pendingNavUrl;
+}
+
+// Intercept all navbar links and browser back/logo clicks
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.nav-btn, .nav-actions a, .logo, .user-profile a').forEach(function(el){
+    // skip the active "Book" link (current page)
+    if(el.classList.contains('active'))return;
+    el.addEventListener('click',function(e){
+      if(bookingIsInProgress()){
+        e.preventDefault();
+        var url=el.getAttribute('href')||el.getAttribute('th:href')||'/';
+        showCancelModal(url);
+      }
+    });
+  });
+});
+
+// Mark booking as started when user picks a city or date
+document.addEventListener('DOMContentLoaded',function(){
+  ['ddSrc','ddDst','calPanelDep'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('click',function(){_bookingStarted=true;});
+  });
+});
+
+/* ── AUTO-FILL FROM URL PARAMS (Features 1 & 5) ─────────────────
+   Reads ?source=Tirana&destination=Rome from URL and pre-selects cities.
+   Works for both "Book Now" from Saved Trips and "Search Flights" redirects.
+   Also checks sessionStorage for a pending post-login booking URL (Scenario B).
+──────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  // ── Scenario B: arrived here after login, check sessionStorage for pending cities ──
+  // The useroptions page stores cities as: myfly_pending_cities = {source, destination}
+  // The bookingform reads it once and removes it.
+  try {
+    var pending = JSON.parse(sessionStorage.getItem('myfly_pending_cities') || 'null');
+    if (pending) {
+      sessionStorage.removeItem('myfly_pending_cities');
+      // Merge into URL params if not already set
+      var existingParams = new URLSearchParams(window.location.search);
+      if (!existingParams.get('source') && pending.source)
+        existingParams.set('source', pending.source);
+      if (!existingParams.get('destination') && pending.destination)
+        existingParams.set('destination', pending.destination);
+      // Replace search string silently (no page reload)
+      var newUrl = window.location.pathname + '?' + existingParams.toString();
+      history.replaceState(null, '', newUrl);
+    }
+  } catch(e) {}
+
+  var params = new URLSearchParams(window.location.search);
+  var srcParam = params.get('source');
+  var dstParam = params.get('destination');
+
+  function findCity(name) {
+    var cities = allCities();
+    var lower = (name || '').toLowerCase().trim();
+    return cities.find(function(c) {
+      return c.name.toLowerCase() === lower || c.iata.toLowerCase() === lower;
+    }) || null;
+  }
+
+  if (srcParam) {
+    var srcCity = findCity(srcParam);
+    if (srcCity) {
+      pickCity('src', srcCity.name, srcCity.country, srcCity.iata, srcCity.flag);
+    }
+  }
+
+  if (dstParam) {
+    var dstCity = findCity(dstParam);
+    if (dstCity) {
+      pickCity('dst', dstCity.name, dstCity.country, dstCity.iata, dstCity.flag);
+    }
+  }
+});
+
+/* ── SUBMIT → BOARDING PASS ─────────────────────────────────── */
+function submitBooking(){
+  var cardRaw=document.getElementById('cardNum').value.replace(/\s/g,'');
+  if(cardRaw.length<15){showToast('Please enter a valid card number.',true);return;}
+  if(!document.getElementById('cardExp').value){showToast('Please enter card expiry date.',true);return;}
+  // Sync final total to hidden field before showing pass
+  document.getElementById('totalPriceH').value=document.getElementById('lgrTotal').textContent;
+  showBoardingPass();
+}
+
+/* ── FLIGHT DURATION TABLE (minutes) ──────────────────────── */
+var FLIGHT_DURATIONS={
+  /* Tirana routes */
+  'Tirana-London':165,'Tirana-Berlin':150,'Tirana-Rome':105,'Tirana-Paris':170,
+  'Tirana-Barcelona':180,'Tirana-Amsterdam':175,'Tirana-Vienna':115,'Tirana-Istanbul':75,
+  'Tirana-Athens':55,'Tirana-Madrid':205,'Tirana-Munich':130,'Tirana-Brussels':180,
+  'Tirana-Prague':155,'Tirana-Warsaw':165,'Tirana-Milan':110,'Tirana-Zurich':135,
+  'Tirana-Dubai':310,'Tirana-Seville':215,'Tirana-Belgrade':80,'Tirana-Bucharest':90,
+  'Tirana-Budapest':115,'Tirana-Copenhagen':190,'Tirana-Dublin':215,'Tirana-Frankfurt':155,
+  'Tirana-Geneva':150,'Tirana-Helsinki':215,'Tirana-Kyiv':130,'Tirana-Lisbon':245,
+  'Tirana-Ljubljana':105,'Tirana-Oslo':210,'Tirana-Sarajevo':65,'Tirana-Skopje':40,
+  'Tirana-Sofia':70,'Tirana-Stockholm':215,'Tirana-Zagreb':100,
+  /* London routes */
+  'London-Berlin':120,'London-Rome':155,'London-Paris':80,'London-Barcelona':145,
+  'London-Amsterdam':65,'London-Vienna':145,'London-Istanbul':205,'London-Athens':210,
+  'London-Madrid':130,'London-Munich':130,'London-Brussels':70,'London-Prague':130,
+  'London-Warsaw':165,'London-Milan':140,'London-Zurich':125,'London-Dubai':410,
+  'London-Belgrade':175,'London-Bucharest':205,'London-Budapest':165,'London-Copenhagen':105,
+  'London-Dublin':80,'London-Frankfurt':100,'London-Geneva':110,'London-Helsinki':190,
+  'London-Kyiv':220,'London-Lisbon':145,'London-Ljubljana':175,'London-Oslo':130,
+  'London-Sarajevo':195,'London-Seville':155,'London-Skopje':210,'London-Sofia':215,
+  'London-Stockholm':155,'London-Zagreb':195,
+  /* Berlin routes */
+  'Berlin-Rome':135,'Berlin-Paris':110,'Berlin-Barcelona':175,'Berlin-Amsterdam':75,
+  'Berlin-Vienna':75,'Berlin-Istanbul':175,'Berlin-Athens':175,'Berlin-Madrid':200,
+  'Berlin-Munich':75,'Berlin-Brussels':110,'Berlin-Prague':65,'Berlin-Warsaw':75,
+  'Berlin-Milan':115,'Berlin-Zurich':90,'Berlin-Dubai':370,'Berlin-Belgrade':95,
+  'Berlin-Bucharest':140,'Berlin-Budapest':80,'Berlin-Copenhagen':75,'Berlin-Dublin':165,
+  'Berlin-Frankfurt':55,'Berlin-Geneva':110,'Berlin-Helsinki':125,'Berlin-Kyiv':150,
+  'Berlin-Lisbon':215,'Berlin-Ljubljana':90,'Berlin-Oslo':95,'Berlin-Sarajevo':115,
+  'Berlin-Seville':225,'Berlin-Skopje':160,'Berlin-Sofia':150,'Berlin-Stockholm':80,
+  'Berlin-Zagreb':100,
+  /* Rome routes */
+  'Rome-Paris':135,'Rome-Barcelona':135,'Rome-Amsterdam':165,'Rome-Vienna':100,
+  'Rome-Istanbul':155,'Rome-Athens':115,'Rome-Madrid':155,'Rome-Munich':95,
+  'Rome-Brussels':160,'Rome-Prague':130,'Rome-Warsaw':165,'Rome-Zurich':75,
+  'Rome-Dubai':340,'Rome-Belgrade':115,'Rome-Bucharest':150,'Rome-Budapest':115,
+  'Rome-Copenhagen':185,'Rome-Dublin':200,'Rome-Frankfurt':115,'Rome-Geneva':80,
+  'Rome-Helsinki':225,'Rome-Kyiv':175,'Rome-Lisbon':200,'Rome-Ljubljana':70,
+  'Rome-Oslo':220,'Rome-Sarajevo':95,'Rome-Seville':175,'Rome-Skopje':115,
+  'Rome-Sofia':130,'Rome-Stockholm':220,'Rome-Zagreb':75,
+  /* Paris routes */
+  'Paris-Barcelona':110,'Paris-Amsterdam':75,'Paris-Vienna':135,'Paris-Istanbul':195,
+  'Paris-Athens':200,'Paris-Madrid':115,'Paris-Munich':95,'Paris-Brussels':60,
+  'Paris-Prague':110,'Paris-Warsaw':165,'Paris-Milan':95,'Paris-Zurich':80,
+  'Paris-Dubai':415,'Paris-Belgrade':155,'Paris-Bucharest':200,'Paris-Budapest':145,
+  'Paris-Copenhagen':115,'Paris-Dublin':100,'Paris-Frankfurt':80,'Paris-Geneva':70,
+  'Paris-Helsinki':210,'Paris-Kyiv':230,'Paris-Lisbon':150,'Paris-Ljubljana':120,
+  'Paris-Oslo':145,'Paris-Sarajevo':170,'Paris-Seville':140,'Paris-Skopje':190,
+  'Paris-Sofia':195,'Paris-Stockholm':155,'Paris-Zagreb':140,
+  /* remaining inter-city */
+  'Amsterdam-Vienna':130,'Amsterdam-Istanbul':200,'Amsterdam-Athens':215,
+  'Amsterdam-Madrid':145,'Amsterdam-Munich':90,'Amsterdam-Brussels':55,
+  'Amsterdam-Prague':115,'Amsterdam-Warsaw':150,'Amsterdam-Milan':120,'Amsterdam-Zurich':100,
+  'Amsterdam-Dubai':400,'Amsterdam-Belgrade':165,'Amsterdam-Bucharest':215,
+  'Amsterdam-Budapest':155,'Amsterdam-Copenhagen':80,'Amsterdam-Dublin':90,
+  'Amsterdam-Frankfurt':60,'Amsterdam-Geneva':105,'Amsterdam-Helsinki':165,
+  'Amsterdam-Oslo':100,'Amsterdam-Stockholm':120,
+  'Vienna-Istanbul':140,'Vienna-Athens':150,'Vienna-Madrid':190,'Vienna-Munich':60,
+  'Vienna-Brussels':130,'Vienna-Prague':60,'Vienna-Warsaw':90,'Vienna-Milan':85,
+  'Vienna-Zurich':80,'Vienna-Dubai':350,'Vienna-Belgrade':65,'Vienna-Bucharest':100,
+  'Vienna-Budapest':50,'Vienna-Copenhagen':135,'Vienna-Dublin':175,'Vienna-Frankfurt':75,
+  'Vienna-Geneva':95,'Vienna-Helsinki':175,'Vienna-Kyiv':120,'Vienna-Lisbon':235,
+  'Vienna-Ljubljana':55,'Vienna-Oslo':165,'Vienna-Sarajevo':75,'Vienna-Seville':225,
+  'Vienna-Skopje':115,'Vienna-Sofia':120,'Vienna-Stockholm':165,'Vienna-Zagreb':55,
+  'Istanbul-Athens':80,'Istanbul-Madrid':265,'Istanbul-Munich':170,'Istanbul-Brussels':210,
+  'Istanbul-Prague':185,'Istanbul-Warsaw':175,'Istanbul-Milan':165,'Istanbul-Zurich':190,
+  'Istanbul-Dubai':230,'Istanbul-Belgrade':100,'Istanbul-Bucharest':110,
+  'Istanbul-Budapest':135,'Istanbul-Copenhagen':235,'Istanbul-Dublin':295,
+  'Istanbul-Frankfurt':195,'Istanbul-Geneva':210,'Istanbul-Helsinki':255,
+  'Istanbul-Kyiv':115,'Istanbul-Lisbon':295,'Istanbul-Ljubljana':145,
+  'Istanbul-Oslo':265,'Istanbul-Sarajevo':115,'Istanbul-Seville':285,
+  'Istanbul-Skopje':90,'Istanbul-Sofia':75,'Istanbul-Stockholm':255,'Istanbul-Zagreb':130,
+  'Belgrade-Bucharest':85,'Belgrade-Budapest':70,'Belgrade-Copenhagen':180,
+  'Belgrade-Frankfurt':120,'Belgrade-Sarajevo':55,'Belgrade-Skopje':55,'Belgrade-Sofia':60,
+  'Belgrade-Zagreb':55,'Bucharest-Sofia':75,'Bucharest-Budapest':115,
+  'Sarajevo-Zagreb':65,'Skopje-Sofia':55,'Sofia-Budapest':110
+};
+
+function getFlightDuration(src,dst){
+  var key1=src+'-'+dst;var key2=dst+'-'+src;
+  return FLIGHT_DURATIONS[key1]||FLIGHT_DURATIONS[key2]||Math.round(120+Math.abs((src+dst).split('').reduce(function(a,c){return a+c.charCodeAt(0);},0)%180));
+}
+
+function fmtMins(mins){
+  var h=Math.floor(mins/60);var m=mins%60;
+  return h+'h '+(m<10?'0':'')+m+'m';
+}
+
+/* ── TIME FRAME SELECTION (4 slots) ─────────────────────────── */
+var selTimeFrame=null;
+/* Slot ranges (inclusive hours):
+   Morning     06:00–09:59
+   LateMorning 10:00–13:59
+   Evening     14:00–19:59
+   Night       20:00–23:59
+*/
+var TIME_SLOTS={
+  Morning:    {minH:6,  maxH:9,  minM:0, maxM:59},
+  LateMorning:{minH:10, maxH:13, minM:0, maxM:59},
+  Evening:    {minH:14, maxH:19, minM:0, maxM:59},
+  Night:      {minH:20, maxH:23, minM:0, maxM:59}
+};
+
+function selectTimeFrame(tf){
+  selTimeFrame=tf;
+  ['Morning','LateMorning','Evening','Night'].forEach(function(t){
+    var card=document.getElementById('tf'+t+'Card');
+    if(card)card.classList.toggle('active',t===tf);
+  });
+  var radio=document.querySelector('input[name="timeFrame"][value="'+tf+'"]');
+  if(radio)radio.checked=true;
+  updateFlightTiming();
+}
+
+function getDepTime(tf){
+  var slot=TIME_SLOTS[tf]||TIME_SLOTS.Morning;
+  var seed=(selSrc?selSrc.iata:'XX').charCodeAt(0)+(selDst?selDst.iata:'XX').charCodeAt(0);
+  // Pseudo-random but stable per route+slot
+  var slotSeed=seed+(tf.charCodeAt(0)||0);
+  var rangeH=slot.maxH-slot.minH;
+  var depH=slot.minH+((slotSeed*7+13)%(rangeH+1));
+  var depM=((slotSeed*31+17)%60);
+  return{h:depH,m:depM};
+}
+
+function updateFlightTiming(){
+  var wrap=document.getElementById('flightTimingInfo');
+  if(!wrap)return;
+  if(!selTimeFrame||!selSrc||!selDst){wrap.style.display='none';return;}
+  var dep=getDepTime(selTimeFrame);
+  var durMins=getFlightDuration(selSrc.name,selDst.name);
+  var arrMin=dep.h*60+dep.m+durMins;
+  var arrH=Math.floor(arrMin/60)%24;var arrM=arrMin%60;
+  var overnight=arrMin>=1440;
+  var fmtT=function(h,m){return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;};
+  var depStr=fmtT(dep.h,dep.m);
+  var arrStr=fmtT(arrH,arrM)+(overnight?' +1d':'');
+  document.getElementById('ftDeparture').textContent=depStr;
+  document.getElementById('ftArrival').textContent=arrStr;
+  document.getElementById('ftDuration').textContent=fmtMins(durMins);
+  document.getElementById('departureTimeH').value=depStr;
+  document.getElementById('arrivalTimeH').value=arrStr;
+  document.getElementById('flightDurationH').value=fmtMins(durMins);
+  wrap.style.display='block';
+}
+
+/* Show/hide time frame UI whenever both cities and a departure date are set */
+function checkShowTimeFrame(){
+  var show=selSrc&&selDst&&selDepDate;
+  var wrap=document.getElementById('timeFrameWrap');
+  if(wrap)wrap.style.display=show?'block':'none';
+  if(show)updateFlightTiming();
+}
+
+/* ── MULTI-PASSENGER BOARDING PASS ───────────────────────────── */
+function buildSinglePassHTML(idx,paxName,passportNum,seatStr,dateStr,bkId,isFirst){
+  var from=selSrc?selSrc.name:'—';var to=selDst?selDst.name:'—';
+  var fromIata=(selSrc?selSrc.iata:from.substring(0,3)).toUpperCase();
+  var toIata=(selDst?selDst.iata:to.substring(0,3)).toUpperCase();
+  var cls=document.getElementById('flightClass').value;
+  var total='€ '+document.getElementById('lgrTotal').textContent;
+  var depTime=document.getElementById('departureTimeH')?document.getElementById('departureTimeH').value:'';
+  var arrTime=document.getElementById('arrivalTimeH')?document.getElementById('arrivalTimeH').value:'';
+  var dur=document.getElementById('flightDurationH')?document.getElementById('flightDurationH').value:'';
+  var timeLine='';
+  if(depTime&&arrTime){
+    timeLine='<div class="bp-dashes"></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.75rem">'
+      +'<div><div class="bp-fld-lbl">Departs</div><div class="bp-fld-val" style="font-size:.95rem">'+depTime+'</div></div>'
+      +'<div style="text-align:center;flex:1;padding:0 8px"><div style="font-size:.6rem;opacity:.45">'+dur+'</div>'
+      +'<div style="border-top:1px dashed rgba(255,255,255,.3);margin:3px 0"></div></div>'
+      +'<div style="text-align:right"><div class="bp-fld-lbl">Arrives</div><div class="bp-fld-val" style="font-size:.95rem;color:#93c5fd">'+arrTime+'</div></div>'
+      +'</div>';
+  }
+  var barcodeId='bpBarcode_'+idx;
+  return '<div class="bp-card mb-3" id="bpCard_'+idx+'">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+    +'<span class="bp-airline">✈ MyFly</span><span class="bp-type">BOARDING PASS</span></div>'
+    +'<div class="bp-route">'
+    +'<div><div class="bp-iata">'+fromIata+'</div><div class="bp-city">'+from+'</div></div>'
+    +'<div class="bp-arrow">→</div>'
+    +'<div style="text-align:right"><div class="bp-iata">'+toIata+'</div><div class="bp-city">'+to+'</div></div>'
+    +'</div>'
+    +'<div class="bp-dashes"></div>'
+    +'<div class="bp-grid">'
+    +'<div><div class="bp-fld-lbl">Passenger</div><div class="bp-fld-val">'+paxName+'</div></div>'
+    +'<div><div class="bp-fld-lbl">Date</div><div class="bp-fld-val">'+dateStr+'</div></div>'
+    +'<div><div class="bp-fld-lbl">Class</div><div class="bp-fld-val">'+cls+'</div></div>'
+    +'<div><div class="bp-fld-lbl">Seat</div><div class="bp-fld-val">'+seatStr+'</div></div>'
+    +'<div><div class="bp-fld-lbl">Passport</div><div class="bp-fld-val">'+passportNum+'</div></div>'
+    +'</div>'
+    +timeLine
+    +'<div class="bp-dashes"></div>'
+    +'<div class="bp-barcode" id="'+barcodeId+'"></div>'
+    +'<div class="bp-bk-id">'+bkId+'-P'+(idx+1)+'</div>'
+    +'</div>';
+}
+
+function showBoardingPass(){
+  var pax=parseInt(document.getElementById('tickets').value)||1;
+  var from=selSrc?selSrc.name:'—';var to=selDst?selDst.name:'—';
+  var fromIata=(selSrc?selSrc.iata:from.substring(0,3)).toUpperCase();
+  var toIata=(selDst?selDst.iata:to.substring(0,3)).toUpperCase();
+  var cls=document.getElementById('flightClass').value;
+  var total='€ '+document.getElementById('lgrTotal').textContent;
+  var depTime=document.getElementById('departureTimeH')?document.getElementById('departureTimeH').value:'';
+  var dateStr=selDepDate?fmtDateDisp(selDepDate)+(depTime?' at '+depTime:''):'—';
+  var bkId='BK-'+String(Date.now()).slice(-6);
+  var seatPref=(document.querySelector('input[name="seatPref"]:checked')||{value:'random'}).value;
+  var colMap={window:['A','F'],middle:['B','C','D','E'],aisle:['C','D'],random:['A','B','C','D','E','F']};
+  var colArr=colMap[seatPref]||colMap.random;
+
+  // Build per-pax data arrays
+  var paxData=[];
+  for(var i=0;i<pax;i++){
+    var fEl=document.querySelector('[name="paxFirst_'+i+'"]');
+    var lEl=document.querySelector('[name="paxLast_'+i+'"]');
+    var firstName=fEl?fEl.value.trim():'';
+    var lastName=lEl?lEl.value.trim():'';
+    var paxName=(firstName||lastName)?(firstName+' '+lastName).trim()
+      :(i===0?document.getElementById('usernameIn').value||'Passenger 1':'Passenger '+(i+1));
+    var ppEl=document.getElementById('ppNum_'+i);
+    var ppNum=ppEl?ppEl.value.trim():'—';
+    var row=Math.floor(Math.random()*30)+1;
+    var col=colArr[Math.floor(Math.random()*colArr.length)];
+    paxData.push({name:paxName,passport:ppNum,seat:row+col});
+  }
+
+  // Populate legacy compat hidden spans (used by savePass / _saveBookingToLocalStorage)
+  document.getElementById('bpBkId').textContent=bkId;
+  document.getElementById('bpFromIata').textContent=fromIata;
+  document.getElementById('bpFromCity').textContent=from;
+  document.getElementById('bpToIata').textContent=toIata;
+  document.getElementById('bpToCity').textContent=to;
+  document.getElementById('bpPaxName').textContent=paxData[0]?paxData[0].name:'—';
+  document.getElementById('bpDate').textContent=dateStr;
+  document.getElementById('bpClass').textContent=cls;
+  document.getElementById('bpSeat').textContent=paxData[0]?paxData[0].seat:'—';
+  document.getElementById('bpPassport').textContent=paxData[0]?paxData[0].passport:'—';
+  document.getElementById('bpTotal').textContent=total;
+
+  // Render pass cards
+  var passesWrap=document.getElementById('bpPassesWrap');
+  passesWrap.innerHTML='';
+  for(var j=0;j<paxData.length;j++){
+    passesWrap.innerHTML+=buildSinglePassHTML(j,paxData[j].name,paxData[j].passport,paxData[j].seat,dateStr,bkId,j===0);
+  }
+  // Run barcode after render
+  setTimeout(function(){
+    for(var k=0;k<paxData.length;k++){
+      genBarcode(document.getElementById('bpBarcode_'+k),Date.now()+k*137);
+    }
+  },50);
+
+  // Render passenger tab pills (only if pax > 1)
+  var tabsWrap=document.getElementById('bpPaxTabs');
+  tabsWrap.style.display=pax>1?'block':'none';
+  tabsWrap.innerHTML='';
+  if(pax>1){
+    for(var t=0;t<paxData.length;t++){
+      var pill=document.createElement('button');
+      pill.type='button';
+      pill.className='btn btn-sm me-1 mb-1'+(t===0?' btn-primary':' btn-outline-secondary');
+      pill.style.cssText='font-size:.72rem;font-weight:700;border-radius:20px;padding:3px 12px';
+      pill.textContent='Pax '+(t+1)+': '+paxData[t].name.split(' ')[0];
+      (function(idx){
+        pill.onclick=function(){
+          // scroll to card
+          var card=document.getElementById('bpCard_'+idx);
+          if(card)card.scrollIntoView({behavior:'smooth',block:'nearest'});
+          // highlight active tab
+          tabsWrap.querySelectorAll('button').forEach(function(b,bi){
+            b.className='btn btn-sm me-1 mb-1'+(bi===idx?' btn-primary':' btn-outline-secondary');
+            b.style.cssText='font-size:.72rem;font-weight:700;border-radius:20px;padding:3px 12px';
+          });
+        };
+      })(t);
+      tabsWrap.appendChild(pill);
+    }
+  }
+
+  // Reset save btn
+  var btn=document.getElementById('btnSavePass');btn.classList.remove('saved');
+  btn.innerHTML='<i class="bi bi-bookmark-fill me-2"></i>Save to My Profile';
+  document.getElementById('bpBackdrop').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeBP(){
+  document.getElementById('bpBackdrop').classList.remove('show');
+  document.body.style.overflow='';
+  // Suppress any server-side 'no flights' error that may be in the DOM
+  document.querySelectorAll('.alert-danger').forEach(function(el){
+    if(el.textContent.toLowerCase().indexOf('flight')>-1||el.textContent.toLowerCase().indexOf('schedule')>-1){
+      el.style.transition='opacity .4s';el.style.opacity='0';
+      setTimeout(function(){el.style.display='none';},400);
+    }
+  });
+  _saveBookingToLocalStorage();
+  // Submit form silently in background (no redirect from form itself)
+  try{
+    var form=document.getElementById('bookingForm');
+    form.querySelector('#totalPriceH').value=document.getElementById('lgrTotal').textContent;
+    var uidEl=document.getElementById('userId');
+    if(uidEl){
+      var rawUid=uidEl.value;
+      if(rawUid&&(rawUid.indexOf('[object')>-1||rawUid.indexOf('{')>-1)){
+        try{var parsed=JSON.parse(rawUid);rawUid=parsed.id||parsed.userId||'';}catch(e){rawUid='';}
+      }
+      var intUid=parseInt(rawUid,10);
+      uidEl.value=isNaN(intUid)?'':intUid;
+    }
+    // Use fetch to submit in background so we control the redirect ourselves
+    var fd=new FormData(form);
+    fetch(form.action||'/bookingform',{method:'POST',body:fd,redirect:'manual'}).catch(function(){});
+  }catch(err){console.warn('[MyFly] background submit error:',err);}
+  // Show grand confirmation overlay, then redirect to useroptions
+  showGrandConfirm();
+  setTimeout(function(){
+    window.location.href='/useroptions';
+  }, 3800);
+}
+
+/* ── GRAND CONFIRMATION ANIMATION ────────────────────────────── */
+function showGrandConfirm(){
+  var ov=document.getElementById('grandConfirmOverlay');
+  if(!ov)return;
+  ov.style.display='flex';
+  // Confetti
+  var cc=document.getElementById('gcoConfetti');
+  if(cc){
+    var colors=['#cf0e78','#10b981','#f59e0b','#3b82f6','#a855f7','#ef4444','#fff'];
+    var html='';
+    for(var i=0;i<55;i++){
+      var left=Math.random()*100;
+      var delay=Math.random()*1.4;
+      var dur=2.5+Math.random()*2;
+      var size=5+Math.random()*9;
+      var color=colors[Math.floor(Math.random()*colors.length)];
+      var rotate=Math.random()*360;
+      html+='<div style="position:absolute;left:'+left+'%;top:-20px;width:'+size+'px;height:'+size+'px;background:'+color
+        +';border-radius:'+(Math.random()>0.4?'50%':'2px')+';animation:confettiFall '+dur+'s '+delay+'s ease-in forwards;transform:rotate('+rotate+'deg)"></div>';
+    }
+    cc.innerHTML=html;
+    if(!document.getElementById('confettiKeyframes')){
+      var s=document.createElement('style');s.id='confettiKeyframes';
+      s.textContent='@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
+      document.head.appendChild(s);
+    }
+  }
+  // Animate inner content in
+  var inner=document.getElementById('gcoInner');
+  if(inner){
+    requestAnimationFrame(function(){
+      setTimeout(function(){inner.style.opacity='1';inner.style.transform='scale(1)';},60);
+    });
+  }
+  // Fly the plane
+  var plane=document.getElementById('gcoPlane');
+  if(plane){
+    setTimeout(function(){plane.style.transform='translateX(200px) translateY(-60px) scale(1.3) rotate(-20deg)';},700);
+    setTimeout(function(){plane.style.transform='';},2000);
+  }
+}
+
+/* Persist a simulated booking record to localStorage so profile can render it
+   alongside server-side bookings without a DB round-trip. */
+function _saveBookingToLocalStorage(){
+  try{
+    var bkId=document.getElementById('bpBkId').textContent||('BK-'+String(Date.now()).slice(-6));
+    var depTime=document.getElementById('departureTimeH')?document.getElementById('departureTimeH').value:'';
+    var arrTime=document.getElementById('arrivalTimeH')?document.getElementById('arrivalTimeH').value:'';
+    var pax=parseInt(document.getElementById('tickets')?document.getElementById('tickets').value:1)||1;
+    var paxNames=[];
+    for(var i=0;i<pax;i++){
+      var fEl=document.querySelector('[name="paxFirst_'+i+'"]');
+      var lEl=document.querySelector('[name="paxLast_'+i+'"]');
+      var fn=fEl?fEl.value.trim():'';var ln=lEl?lEl.value.trim():'';
+      paxNames.push((fn+' '+ln).trim()||('Passenger '+(i+1)));
+    }
+    var booking={
+      bookingId: bkId,
+      source:    selSrc?selSrc.name:'—',
+      destination: selDst?selDst.name:'—',
+      departureDate: selDepDate||null,
+      returnDate:    selRetDate||null,
+      flightClass:   document.getElementById('flightClass')?document.getElementById('flightClass').value:'Economy',
+      tickets:       pax,
+      paymentMethod: document.getElementById('payMethodH')?document.getElementById('payMethodH').value:'CREDIT CARD',
+      totalPrice:    parseFloat(document.getElementById('lgrTotal').textContent)||0,
+      confirmation:  'Confirmed',
+      depTime:       depTime,
+      arrTime:       arrTime,
+      paxNames:      paxNames,
+      savedAt:       new Date().toISOString()
+    };
+    var existing=[];
+    try{existing=JSON.parse(localStorage.getItem(_lsKey('myfly_local_bookings'))||'[]');}catch(e){}
+    // avoid duplicate if user hits close multiple times
+    if(!existing.find(function(b){return b.bookingId===bkId;})){
+      existing.push(booking);
+      localStorage.setItem(_lsKey('myfly_local_bookings'),JSON.stringify(existing));
+    }
+  }catch(err){console.warn('[MyFly] Could not save booking to localStorage:',err);}
+}
+
+function savePass(){
+  var bkId=document.getElementById('bpBkId').textContent;
+  var from=document.getElementById('bpFromCity').textContent;
+  var fromIata=document.getElementById('bpFromIata').textContent;
+  var to=document.getElementById('bpToCity').textContent;
+  var toIata=document.getElementById('bpToIata').textContent;
+  var date=document.getElementById('bpDate').textContent;
+  var cls=document.getElementById('bpClass').textContent;
+  var depTime=document.getElementById('departureTimeH')?document.getElementById('departureTimeH').value:'';
+  var arrTime=document.getElementById('arrivalTimeH')?document.getElementById('arrivalTimeH').value:'';
+  var pax=parseInt(document.getElementById('tickets').value)||1;
+  var paxNames=[];
+  for(var i=0;i<pax;i++){
+    var fEl=document.querySelector('[name="paxFirst_'+i+'"]');
+    var lEl=document.querySelector('[name="paxLast_'+i+'"]');
+    var fn=fEl?fEl.value.trim():'';var ln=lEl?lEl.value.trim():'';
+    paxNames.push((fn+' '+ln).trim()||('Passenger '+(i+1)));
+  }
+  var pass={
+    id:bkId,
+    from:from,fromIata:fromIata,
+    to:to,toIata:toIata,
+    passenger:paxNames[0]||document.getElementById('bpPaxName').textContent,
+    paxNames:paxNames,
+    tickets:pax,
+    date:date,cls:cls,
+    seat:document.getElementById('bpSeat').textContent,
+    passport:document.getElementById('bpPassport').textContent,
+    depTime:depTime,arrTime:arrTime,
+    savedAt:new Date().toISOString()
+  };
+  var passes=[];try{passes=JSON.parse(localStorage.getItem(_lsKey('myfly_boarding_passes'))||'[]');}catch(e){}
+  if(!passes.find(function(p){return p.id===pass.id;}))passes.push(pass);
+  localStorage.setItem(_lsKey('myfly_boarding_passes'),JSON.stringify(passes));
+  var btn=document.getElementById('btnSavePass');btn.classList.add('saved');
+  btn.innerHTML='<i class="bi bi-check-circle-fill me-2"></i>Saved!';
+  showToast('✓ Boarding pass saved to profile!',false);
+}
+
+/* ── TOAST (was missing — caused silent crash on any validation) ─ */
+var _toastTimer=null;
+function showToast(msg,isError){
+  var t=document.getElementById('nfToast');
+  var m=document.getElementById('nfMsg');
+  if(!t||!m)return;
+  m.textContent=msg;
+  if(isError)t.classList.add('error');else t.classList.remove('error');
+  t.classList.add('show');
+  if(_toastTimer)clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+/* ── BARCODE GENERATOR (was missing — caused crash in showBoardingPass) ─ */
+function genBarcode(container,seed){
+  if(!container)return;
+  var numBars=52;
+  /* FIX: No margin-right; justify-content:space-between on .bp-bar-bars
+     distributes bars evenly so the barcode fills the full container width. */
+  var html='<div class="bp-bar-bars">';
+  var s=parseInt(seed)||42;
+  for(var i=0;i<numBars;i++){
+    s=(s*1103515245+12345)&0x7fffffff;
+    var w=(s%3)+1;
+    html+='<div style="width:'+w+'px;background:rgba(255,255,255,0.85);height:100%;flex-shrink:0;border-radius:1px"></div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+/* ── RESET MODAL (replaces native browser confirm dialog) ────── */
+function showResetModal(){
+  document.getElementById('resetModalBackdrop').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function resetModalCancel(){
+  document.getElementById('resetModalBackdrop').style.display='none';
+  document.body.style.overflow='';
+}
+function resetModalConfirm(){
+  document.getElementById('resetModalBackdrop').style.display='none';
+  document.body.style.overflow='';
+  location.reload();
+}
+
+</script>
+</body>
+</html>

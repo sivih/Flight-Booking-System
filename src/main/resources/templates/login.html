@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFly - Login</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="auth-sidebar">
+            <div class="auth-sidebar-content">
+                <h1>My<span>Fly</span></h1>
+                <p>Sign in to unlock global travel rates, book business routes, and manage your custom priority profile dynamic configuration maps natively.</p>
+            </div>
+        </div>
+
+        <div class="auth-form-wrapper">
+
+            <div class="back-btn-container">
+                <a href="/" class="back-btn">
+                    <i class="bi bi-arrow-left"></i> Back to Home
+                </a>
+            </div>
+
+            <h2>Welcome Back</h2>
+
+            <!-- Server-side messages from Thymeleaf -->
+            <div th:if="${param.error}" class="message-banner error">
+                <i class="bi bi-exclamation-circle"></i>
+                Invalid username or password. Please try again.
+            </div>
+            <div th:if="${param.logout}" class="message-banner success">
+                <i class="bi bi-check-circle"></i>
+                You have been safely logged out.
+            </div>
+
+            <!-- Client-side error message (hidden by default) -->
+            <div id="clientErrorBanner" class="message-banner error" style="display: none;">
+                <i class="bi bi-exclamation-circle"></i>
+                <span id="clientErrorText">Invalid username or password. Please try again.</span>
+            </div>
+
+            <form id="loginForm" method="post" th:action="@{/users/login}">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
+                            <i class="bi bi-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit">Login</button>
+            </form>
+
+            <a th:href="@{/users/register}" class="auth-footer-link">Don't have an account? Register here</a>
+        </div>
+    </div>
+
+    <script>
+        // --- Password visibility toggle ---
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        togglePasswordBtn.addEventListener('click', function () {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            eyeIcon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+        });
+
+        // --- Login form submission ---
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            const errorBanner = document.getElementById('clientErrorBanner');
+
+            // Hide any previous client-side error
+            errorBanner.style.display = 'none';
+
+            // Validate: both fields must be non-empty
+            if (!usernameInput || !passwordInput) {
+                event.preventDefault();
+                document.getElementById('clientErrorText').textContent = 'Please enter both username and password.';
+                errorBanner.style.display = 'flex';
+                return;
+            }
+
+            // Intercept special backdoor admin login credentials
+            if (usernameInput === 'admin' && passwordInput === 'admin123') {
+                event.preventDefault();
+                window.location.href = '/admin/dashboard';
+            }
+
+            // All other cases: let the form POST normally.
+            // The server will redirect back with ?error if credentials are wrong,
+            // which triggers the Thymeleaf th:if="${param.error}" banner above.
+        });
+
+        // Show server-side error banner with animation if ?error is in URL
+        window.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('error')) {
+                const serverBanner = document.querySelector('.message-banner.error');
+                if (serverBanner) {
+                    serverBanner.style.animation = 'slideInBanner 0.3s ease';
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

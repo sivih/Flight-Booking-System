@@ -1,0 +1,377 @@
+
+:root {
+    --wizz-blue-deep: #071242;
+    --wizz-blue-bright: #0f19a0;
+    --wizz-magenta: #cf0e78;
+    --wizz-light-bg: #f3f4f6;
+    --wizz-panel-border: #d1d5db;
+}
+
+body {
+    background-color: var(--wizz-light-bg) !important;
+    font-family: 'Inter', sans-serif;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+}
+
+
+.navbar-custom {
+    background-color: #ffffff;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.nav-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.45rem; 
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.logo-bold {
+    font-weight: 700;
+}
+
+.logo-img {
+    height: 32px; 
+    width: 32px;
+    object-fit: contain;
+}
+
+.nav-actions {
+    display: flex;
+    background-color: #f3f4f6;
+    padding: 6px;
+    border-radius: 30px;
+    gap: 4px;
+}
+
+.nav-btn {
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #4b5563;
+    padding: 8px 24px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.nav-btn.active, .nav-btn:hover {
+    background-color: #ffffff;
+    color: #111827;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, 0.05);
+}
+
+.user-profile {
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* --- Container Core Layout Elements --- */
+.wizz-container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Step Progress Bar Strip --- */
+.progress-journey {
+    display: flex;
+    background-color: #ffffff;
+    border: 1px solid var(--wizz-panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.journey-step {
+    flex: 1;
+    text-align: center;
+    padding: 14px 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4b5563;
+    background-color: #f9fafb;
+    border-right: 1px solid var(--wizz-panel-border);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.journey-step:last-child {
+    border-right: none;
+}
+
+.journey-step.active {
+    background-color: var(--wizz-blue-deep);
+    color: #ffffff;
+}
+
+/* --- Core Content Panels --- */
+.wizz-section-panel {
+    background-color: #ffffff;
+    border: 1px solid var(--wizz-panel-border);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.panel-inner-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--wizz-blue-deep);
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 12px;
+}
+
+/* --- Segmented Horizontal Running Navigation Ribbon Search Bar --- */
+.wizz-horizontal-searchbar {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--wizz-panel-border);
+    border-radius: 4px;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+.search-segment {
+    padding: 10px 16px;
+    border-right: 1px solid var(--wizz-panel-border);
+    transition: background-color 0.15s ease;
+}
+
+.search-segment:last-child {
+    border-right: none;
+}
+
+.search-segment:hover, .search-segment:focus-within {
+    background-color: #f9fafb;
+}
+
+.segment-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 2px;
+    letter-spacing: 0.05em;
+}
+
+.segment-input, .segment-input-date, .segment-input-text {
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    outline: none !important;
+    padding: 2px 0;
+    cursor: pointer;
+}
+
+.segment-input-text {
+    cursor: text;
+}
+
+/* --- Interactive Multi-Tab Horizontal Ribbon Strips --- */
+.date-ribbon {
+    display: flex;
+}
+
+.date-tab {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
+    background-color: #ffffff;
+    border: 1px solid var(--wizz-panel-border);
+    padding: 10px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #111827;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.date-tab.active, .date-tab:hover {
+    border-color: var(--wizz-magenta);
+    background-color: #fff1f2;
+    box-shadow: inset 0 0 0 1px var(--wizz-magenta);
+}
+
+/* --- Ticket Selection Dynamic Fare Tier Cards Matrix --- */
+.flight-tier-card {
+    background-color: #ffffff;
+    border: 2px solid var(--wizz-panel-border) !important;
+    transition: all 0.15s ease;
+}
+
+.flight-tier-card.active, .flight-tier-card:hover {
+    border-color: var(--wizz-magenta) !important;
+    background-color: #fdf2f8;
+}
+
+/* --- Baggage Choice Option Selection Upgrade Blocks --- */
+.baggage-card {
+    background-color: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.baggage-card.active, .baggage-card:hover {
+    border-color: var(--wizz-magenta) !important;
+    background-color: #fdf2f8;
+    box-shadow: 0 0 0 1px var(--wizz-magenta);
+}
+
+.baggage-card input[type="radio"] {
+    transform: scale(1.1);
+}
+
+/* --- Standard Form Field Custom Stylings Overrides --- */
+.form-label {
+    margin-bottom: 4px;
+    color: #374151 !important;
+    font-size: 0.8rem;
+}
+
+.form-control, .form-select {
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    color: #111827;
+    border-radius: 4px !important;
+    border: 1px solid var(--wizz-panel-border);
+    background-color: #ffffff !important; 
+    transition: all 0.15s ease;
+}
+
+.input-group-text {
+    background-color: #f3f4f6 !important;
+    border: 1px solid var(--wizz-panel-border);
+    color: #6b7280;
+    border-radius: 4px !important;
+}
+
+.input-group > .form-control, 
+.input-group > .form-select {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+/* --- Modular Transactional Selection Box Radios --- */
+.payment-radio-group {
+    display: flex;
+    gap: 12px;
+}
+
+.payment-radio-box {
+    cursor: pointer;
+    background-color: #f9fafb;
+    border: 1px solid var(--wizz-panel-border) !important;
+    border-radius: 4px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.payment-radio-box:hover {
+    background-color: #f3f4f6;
+}
+
+.payment-radio-box:has(input:checked) {
+    border-color: var(--wizz-blue-deep) !important;
+    background-color: var(--wizz-blue-deep);
+    color: #ffffff;
+}
+
+/* --- Right Column Sidebar Calculations Layout Ledger Panel --- */
+.wizz-sticky-sidebar {
+    position: sticky;
+    top: 20px;
+    border: 1px solid var(--wizz-panel-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-inline-input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    width: 90px;
+    pointer-events: none;
+}
+
+.text-wizz-blue {
+    color: var(--wizz-blue-deep) !important;
+}
+
+/* --- Buttons Framework Command Footers --- */
+.btn-wizz-primary {
+    background-color: var(--wizz-magenta);
+    color: #ffffff;
+    border: none;
+    font-size: 0.95rem;
+    transition: background-color 0.15s ease;
+}
+
+.btn-wizz-primary:hover {
+    background-color: #b00b65;
+    color: #ffffff;
+}
+
+.accent-wizz {
+    accent-color: var(--wizz-magenta);
+}
+
+.style-list-tick {
+    list-style-type: none;
+}
+.style-list-tick li::before {
+    content: "✓ ";
+    color: var(--wizz-magenta);
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+/* --- Responsive Layout Breaks Screen Adapters --- */
+@media (max-width: 991px) {
+    .wizz-sticky-sidebar {
+        position: relative;
+        top: 0;
+        margin-top: 8px;
+    }
+}
+
+@media (max-width: 576px) {
+    .progress-journey {
+        flex-direction: column;
+    }
+    .journey-step {
+        border-right: none;
+        border-bottom: 1px solid var(--wizz-panel-border);
+        text-align: left;
+        padding-left: 16px;
+    }
+    .journey-step:last-child {
+        border-bottom: none;
+    }
+    .payment-radio-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+}

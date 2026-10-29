@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyFlight - Premium Travel</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+
+    <header class="navbar-custom">
+        <div class="nav-container">
+            <div class="top-nav-utils">
+            </div>
+
+            <div class="logo">
+                <i class="bi bi-wind logo-icon-wing"></i>MyFly<span class="logo-bold"></span>
+            </div>
+            
+            <div class="top-right-spacer"></div>
+        </div>
+    </header>
+
+    <main class="hero-showcase-canvas">
+
+        <div class="centered-hero-glass-box">
+            <div class="brand-editorial-narrative">
+                <p class="narrative-subtitle">
+                    Tailored for seamless travel and premium horizons.
+                </p>
+            </div>
+            
+            <div class="action-placement-center">
+                <button class="btn-editorial-explore" onclick="location.href='/useroptions'">
+                    Explore <i class="bi bi-chevron-right arrow-icon-shift"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="bottom-ticker-container">
+            <div class="ticker-wrap">
+                <div class="ticker-motion">
+                    <span class="ticker-item"><i class="bi bi-patch-check-fill verification-icon"></i> System Verified Secure</span>
+                    <span class="ticker-item"><i class="bi bi-airplane-fill route-icon"></i> Special Offers: Explore to find more!!</span>
+                    <span class="ticker-item"><i class="bi bi-shield-lock-fill verification-icon"></i> Encrypted Booking Gateway</span>
+                    <span class="ticker-item"><i class="bi bi-lightning-charge-fill stats-icon"></i> Real-time Flight Scheduling Active</span>
+                    <span class="ticker-item"><i class="bi bi-globe2 route-icon"></i> Global Charter Operations 24/7</span>
+                    
+                    <span class="ticker-item"><i class="bi bi-patch-check-fill verification-icon"></i> System Verified Secure</span>
+                    <span class="ticker-item"><i class="bi bi-airplane-fill route-icon"></i> Special Offer: Tirana to Barcelona from €234</span>
+                    <span class="ticker-item"><i class="bi bi-shield-lock-fill verification-icon"></i> Encrypted Booking Gateway</span>
+                    <span class="ticker-item"><i class="bi bi-lightning-charge-fill stats-icon"></i> Real-time Flight Scheduling Active</span>
+                    <span class="ticker-item"><i class="bi bi-globe2 route-icon"></i> Global Charter Operations 24/7</span>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+
+</body>
+</html>

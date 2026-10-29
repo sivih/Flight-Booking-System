@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- FIX: Inject the logged-in user's numeric session ID so JS can scope
+         all localStorage keys per-user, preventing data leaking across accounts.
+         Uses session.userId — the same value bookingform.html and useroptions.html use —
+         so all three pages produce identical key prefixes (e.g. uid_5_myfly_local_bookings). -->
+    <meta name="myfly-session-user" th:content="${session.userId != null ? session.userId : ''}">
+    <title>MyFly - My Profile</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/profile.css}">
+</head>
+<body>
+
+<header class="pf-navbar">
+    <div class="pf-nav-inner">
+        <a th:href="@{/useroptions}" class="pf-logo">
+            <i class="bi bi-wind pf-logo-wing"></i>MyFly<span></span>
+        </a>
+        <nav class="pf-nav-links">
+            <a th:href="@{/}" class="pf-nav-link">Home</a>
+            <a th:href="@{/useroptions}" class="pf-nav-link">Search</a> <a th:href="@{/bookingform}" class="pf-nav-link">Book</a>
+            <a href="#" class="pf-nav-link active">Profile</a>
+        </nav>
+        <a th:href="@{/users/logout}" class="pf-logout-btn">
+            <i class="bi bi-box-arrow-right me-1"></i>Log Out
+        </a>
+    </div>
+</header>
+
+<div class="pf-hero-band">
+    <div class="pf-hero-inner">
+        <div class="pf-avatar-ring">
+            <div class="pf-avatar-circle">
+                <span th:text="${#strings.substring(user.fullName, 0, 1)}">U</span>
+            </div>
+            <div class="pf-avatar-status"></div>
+        </div>
+
+        <div class="pf-hero-identity">
+            <h1 class="pf-hero-name" th:text="${user.fullName}">Full Name</h1>
+            <div class="pf-hero-meta">
+                <span class="pf-meta-pill"><i class="bi bi-at"></i> <span th:text="${user.username}">username</span></span>
+                <span class="pf-meta-pill"><i class="bi bi-envelope"></i> <span th:text="${user.email}">email@email.com</span></span>
+                <span class="pf-meta-pill"><i class="bi bi-globe2"></i> <span th:text="${user.country}">Country</span></span>
+                <span class="pf-meta-pill"><i class="bi bi-gender-ambiguous"></i> <span th:text="${user.gender}">Gender</span></span>
+            </div>
+        </div>
+
+        <div class="pf-hero-stats">
+            <div class="pf-stat-box">
+                <span class="pf-stat-number" th:text="${bookings != null ? bookings.size() : 0}">0</span>
+                <span class="pf-stat-label">Bookings</span>
+            </div>
+            <div class="pf-stat-divider"></div>
+            <div class="pf-stat-box">
+                <span class="pf-stat-number" id="savedTripsCountHeader">0</span>
+                <span class="pf-stat-label">Saved Trips</span>
+            </div>
+            <div class="pf-stat-divider"></div>
+            <div class="pf-stat-box">
+                <span class="pf-stat-number" id="passesCountHeader" th:text="${bookings != null ? bookings.size() : 0}">0</span>
+                <span class="pf-stat-label">Passes</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="pf-main">
+    <div class="pf-content-grid">
+
+        <aside class="pf-sidebar">
+            <div class="pf-sidebar-card">
+                <h3 class="pf-sidebar-title">Account Details</h3>
+
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon"><i class="bi bi-person-badge"></i></span>
+                    <div>
+                        <div class="pf-detail-label">Full Name</div>
+                        <div class="pf-detail-value" th:text="${user.fullName}">—</div>
+                    </div>
+                </div>
+
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon"><i class="bi bi-phone"></i></span>
+                    <div>
+                        <div class="pf-detail-label">Mobile</div>
+                        <div class="pf-detail-value" th:text="${user.mobile}">—</div>
+                    </div>
+                </div>
+
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon"><i class="bi bi-calendar-date"></i></span>
+                    <div>
+                        <div class="pf-detail-label">Date of Birth</div>
+                        <div class="pf-detail-value" th:text="${user.dob}">—</div>
+                    </div>
+                </div>
+
+                <div class="pf-detail-row">
+                    <span class="pf-detail-icon"><i class="bi bi-shield-check"></i></span>
+                    <div>
+                        <div class="pf-detail-label">Account Status</div>
+                        <div class="pf-detail-value">
+                            <span class="pf-status-active">● Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <a th:href="@{/bookingform}" class="pf-book-cta">
+                    <i class="bi bi-airplane-fill me-2"></i>Book New Flight
+                </a>
+            </div>
+
+            <div class="pf-sidebar-card mt-3">
+                <h3 class="pf-sidebar-title">Quick Navigation</h3>
+                <nav class="pf-quick-nav">
+                    <a href="#bookingsSection" class="pf-qnav-link active" onclick="switchTab('bookings')">
+                        <i class="bi bi-ticket-perforated"></i> My Bookings
+                    </a>
+                    <a href="#savedSection" class="pf-qnav-link" onclick="switchTab('saved')">
+                        <i class="bi bi-bookmark-star"></i> Saved Trips
+                    </a>
+                    <a href="#passesSection" class="pf-qnav-link" onclick="switchTab('passes')">
+                        <i class="bi bi-qr-code"></i> Boarding Passes
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <section class="pf-content-area">
+
+            <div class="pf-tab-bar">
+                <button class="pf-tab-btn active" id="tabBtn-bookings" onclick="switchTab('bookings')">
+                    <i class="bi bi-ticket-perforated me-2"></i>My Bookings
+                </button>
+                <button class="pf-tab-btn" id="tabBtn-saved" onclick="switchTab('saved')">
+                    <i class="bi bi-bookmark-star me-2"></i>Saved Trips
+                </button>
+                <button class="pf-tab-btn" id="tabBtn-passes" onclick="switchTab('passes')">
+                    <i class="bi bi-qr-code me-2"></i>Boarding Passes
+                </button>
+            </div>
+
+            <div class="pf-tab-panel active" id="panel-bookings">
+
+                <div th:if="${bookings == null or bookings.isEmpty()}" class="pf-empty-state">
+                    <div class="pf-empty-icon"><i class="bi bi-ticket-perforated"></i></div>
+                    <h4>No bookings yet</h4>
+                    <p>Your confirmed flight bookings will appear here.</p>
+                    <a th:href="@{/bookingform}" class="pf-empty-cta">Book Your First Flight</a>
+                </div>
+
+                <div th:if="${bookings != null and !bookings.isEmpty()}" class="pf-booking-list">
+                    <div th:each="b : ${bookings}" class="pf-booking-card">
+                        <div class="pf-booking-status-ribbon"
+                             th:classappend="${b.confirmation == 'Confirmed'} ? 'confirmed' : 'pending'"
+                             th:text="${b.confirmation != null ? b.confirmation : 'Pending'}">
+                            Pending
+                        </div>
+
+                        <div class="pf-booking-route-header">
+                            <div class="pf-booking-city">
+                                <span class="pf-city-code" th:text="${#strings.substring(b.source, 0, 3).toUpperCase()}">TIA</span>
+                                <span class="pf-city-name" th:text="${b.source}">Tirana</span>
+                            </div>
+                            <div class="pf-route-arrow">
+                                <div class="pf-route-line"></div>
+                                <i class="bi bi-airplane-fill pf-route-plane"></i>
+                            </div>
+                            <div class="pf-booking-city text-end">
+                                <span class="pf-city-code" th:text="${#strings.substring(b.destination, 0, 3).toUpperCase()}">LHR</span>
+                                <span class="pf-city-name" th:text="${b.destination}">London</span>
+                            </div>
+                        </div>
+
+                        <div class="pf-booking-details">
+                            <div class="pf-bdet">
+                                <span class="pf-bdet-label"><i class="bi bi-calendar3 me-1"></i>Departure</span>
+                                <span class="pf-bdet-value" th:text="${b.departureDate != null ? #dates.format(b.departureDate, 'dd MMM yyyy') : '—'}">—</span>
+                            </div>
+                            <div class="pf-bdet" th:if="${b.returnDate != null}">
+                                <span class="pf-bdet-label"><i class="bi bi-calendar3-range me-1"></i>Return</span>
+                                <span class="pf-bdet-value" th:text="${#dates.format(b.returnDate, 'dd MMM yyyy')}">—</span>
+                            </div>
+                            <div class="pf-bdet">
+                                <span class="pf-bdet-label"><i class="bi bi-people me-1"></i>Passengers</span>
+                                <span class="pf-bdet-value" th:text="${b.tickets != null ? b.tickets + ' ticket(s)' : '—'}">—</span>
+                            </div>
+                            <div class="pf-bdet">
+                                <span class="pf-bdet-label"><i class="bi bi-briefcase me-1"></i>Class</span>
+                                <span class="pf-bdet-value" th:text="${b.flightClass != null ? b.flightClass : '—'}">—</span>
+                            </div>
+                            <div class="pf-bdet">
+                                <span class="pf-bdet-label"><i class="bi bi-credit-card me-1"></i>Payment</span>
+                                <span class="pf-bdet-value" th:text="${b.paymentMethod != null ? b.paymentMethod : '—'}">—</span>
+                            </div>
+                            <div class="pf-bdet pf-bdet-total">
+                                <span class="pf-bdet-label">Total Paid</span>
+                                <span class="pf-bdet-price">€ <span th:text="${b.totalPrice != null ? #numbers.formatDecimal(b.totalPrice, 1, 2) : '0.00'}">0.00</span></span>
+                            </div>
+                        </div>
+
+                        <div class="pf-booking-footer">
+                            <span class="pf-booking-id">Booking #<span th:text="${b.bookingId}">0</span></span>
+                            <button class="pf-view-pass-btn"
+                                    th:attr="onclick='showBoardingPass(' + ${b.bookingId} + ', \'' + ${b.source} + '\', \'' + ${b.destination} + '\', \'' + (${b.departureDate != null ? #dates.format(b.departureDate, 'dd MMM yyyy') : 'N/A'}) + '\', \'' + ${b.flightClass != null ? b.flightClass : 'Economy'} + '\', ' + ${b.tickets != null ? b.tickets : 1} + ', ' + ${b.totalPrice != null ? b.totalPrice : 0} + ', \'\', \'\', \'[]\')'">
+                                <i class="bi bi-qr-code me-1"></i>View Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pf-tab-panel" id="panel-saved">
+
+                <div class="pf-empty-state" id="savedEmptyState">
+                    <div class="pf-empty-icon"><i class="bi bi-bookmark-star"></i></div>
+                    <h4>No saved trips</h4>
+                    <p>Bookmark destinations from the search page and they'll appear here.</p>
+                    <a th:href="@{/useroptions}" class="pf-empty-cta">Explore Destinations</a>
+                </div>
+
+                <div class="pf-saved-grid" id="savedTripsGrid" style="display:none;"></div>
+            </div>
+
+            <div class="pf-tab-panel" id="panel-passes">
+
+                <div th:if="${bookings == null or bookings.isEmpty()}" class="pf-empty-state" id="serverPassesEmpty">
+                    <div class="pf-empty-icon"><i class="bi bi-qr-code"></i></div>
+                    <h4>No boarding passes yet</h4>
+                    <p>Once your bookings are confirmed, your boarding passes appear here.</p>
+                    <a th:href="@{/bookingform}" class="pf-empty-cta">Book a Flight</a>
+                </div>
+
+                <div th:if="${bookings != null and !bookings.isEmpty()}" class="pf-passes-grid">
+                    <div th:each="b : ${bookings}"
+                         th:if="${b.confirmation == 'Confirmed'}"
+                         class="pf-boarding-pass">
+                        <div class="pf-pass-header">
+                            <span class="pf-pass-airline">✈ MyFly</span>
+                            <span class="pf-pass-type">BOARDING PASS</span>
+                        </div>
+                        <div class="pf-pass-route">
+                            <div>
+                                <div class="pf-pass-iata" th:text="${#strings.substring(b.source, 0, 3).toUpperCase()}">TIA</div>
+                                <div class="pf-pass-city" th:text="${b.source}">Tirana</div>
+                            </div>
+                            <div class="pf-pass-arrow">→</div>
+                            <div class="text-end">
+                                <div class="pf-pass-iata" th:text="${#strings.substring(b.destination, 0, 3).toUpperCase()}">LHR</div>
+                                <div class="pf-pass-city" th:text="${b.destination}">London</div>
+                            </div>
+                        </div>
+                        <div class="pf-pass-dashes"></div>
+                        <div class="pf-pass-details">
+                            <div class="pf-pass-field">
+                                <div class="pf-pass-field-label">PASSENGER</div>
+                                <div class="pf-pass-field-value" th:text="${user.fullName}">Name</div>
+                            </div>
+                            <div class="pf-pass-field">
+                                <div class="pf-pass-field-label">DATE</div>
+                                <div class="pf-pass-field-value" th:text="${b.departureDate != null ? #dates.format(b.departureDate, 'dd MMM yy') : '—'}">—</div>
+                            </div>
+                            <div class="pf-pass-field">
+                                <div class="pf-pass-field-label">CLASS</div>
+                                <div class="pf-pass-field-value" th:text="${b.flightClass != null ? b.flightClass : 'Economy'}">Economy</div>
+                            </div>
+                            <div class="pf-pass-field">
+                                <div class="pf-pass-field-label">SEAT</div>
+                                <div class="pf-pass-field-value">14A</div>
+                            </div>
+                        </div>
+                        <div class="pf-pass-dashes"></div>
+                        <div class="pf-pass-barcode">
+                            <div class="pf-barcode-visual" th:attr="data-id=${b.bookingId}"></div>
+                            <div class="pf-pass-booking-id">BK-<span th:text="${b.bookingId}">0</span></div>
+                        </div>
+                        <button class="pf-print-pass-btn" onclick="printPass(this)">
+                            <i class="bi bi-printer me-1"></i>Print Pass
+                        </button>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(bookings.?[confirmation == 'Confirmed'])}" class="pf-empty-state">
+                        <div class="pf-empty-icon"><i class="bi bi-hourglass-split"></i></div>
+                        <h4>Passes pending confirmation</h4>
+                        <p>Your bookings are awaiting admin confirmation before passes are issued.</p>
+                    </div>
+                </div>
+
+                <!-- Local boarding passes saved from booking form -->
+                <div id="localPassesGrid" class="pf-passes-grid" style="display:none;margin-top:16px"></div>
+                <div id="localPassesEmpty" style="display:none" class="pf-empty-state">
+                    <div class="pf-empty-icon"><i class="bi bi-qr-code"></i></div>
+                    <h4>No boarding passes yet</h4>
+                    <p>Once your bookings are confirmed, your boarding passes appear here.</p>
+                    <a th:href="@{/bookingform}" class="pf-empty-cta">Book a Flight</a>
+                </div>
+            </div>
+
+        </section>
+    </div>
+</main>
+
+<div class="pf-modal-backdrop" id="passModalBackdrop" onclick="closePassModal()"></div>
+<div class="pf-modal" id="passModal">
+    <div class="pf-modal-card" style="max-height:88vh;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0;">
+            <h5 style="font-weight:800;color:#071242;margin:0;">🎫 Boarding Pass</h5>
+            <button class="pf-modal-close" onclick="closePassModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <!-- Passenger tab pills shown when >1 pax -->
+        <div id="modalPaxTabs" style="display:none;flex-shrink:0;margin-bottom:10px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;"></div>
+        <!-- Scrollable pass cards area -->
+        <div id="modalPassesWrap" style="overflow-y:auto;flex:1;padding-right:2px;"></div>
+        <div style="flex-shrink:0;display:flex;gap:8px;justify-content:center;margin-top:14px;">
+            <button class="pf-modal-print-btn" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+            <button class="pf-modal-close-btn" onclick="closePassModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+
+(function() {
+    var metaUser = document.querySelector('meta[name="myfly-session-user"]');
+    var _uid = (metaUser && metaUser.getAttribute('content')) ? metaUser.getAttribute('content') : 'guest';
+    window._lsKey = function(base) { return 'uid_' + _uid + '_' + base; };
+})();
+
+
+function loadLocalBookings() {
+    let localBookings = [];
+    try {
+        localBookings = JSON.parse(localStorage.getItem(_lsKey('myfly_local_bookings')) || '[]');
+    } catch(e) { localBookings = []; }
+
+    if (!localBookings.length) return;
+
+    
+    const panel = document.getElementById('panel-bookings');
+    if (!panel) return;
+
+   
+    const emptyState = panel.querySelector('.pf-empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+
+    
+    let localList = document.getElementById('localBookingsList');
+    if (!localList) {
+        localList = document.createElement('div');
+        localList.id = 'localBookingsList';
+        localList.className = 'pf-booking-list';
+        
+        const bookingList = panel.querySelector('.pf-booking-list');
+        if (bookingList) {
+            panel.insertBefore(localList, bookingList);
+        } else {
+            panel.appendChild(localList);
+        }
+    }
+
+    localList.innerHTML = localBookings.slice().reverse().map(function(b) {
+        const srcCode  = (b.source  || '???').substring(0,3).toUpperCase();
+        const dstCode  = (b.destination || '???').substring(0,3).toUpperCase();
+        const depDate  = b.departureDate
+            ? new Date(b.departureDate + 'T12:00:00').toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+            : '—';
+        const total    = typeof b.totalPrice === 'number' ? b.totalPrice.toFixed(2) : '0.00';
+        const bkId     = b.bookingId || 'BK-???';
+        const status   = b.confirmation || 'Confirmed';
+        const cls      = b.flightClass  || 'Economy';
+        const tickets  = b.tickets      || 1;
+        const payment  = b.paymentMethod|| '—';
+        return `
+        <div class="pf-booking-card" style="border-left:3px solid #10b981">
+            <div class="pf-booking-status-ribbon confirmed">${status} <span style="font-size:.65rem;opacity:.7">(local)</span></div>
+            <div class="pf-booking-route-header">
+                <div class="pf-booking-city">
+                    <span class="pf-city-code">${srcCode}</span>
+                    <span class="pf-city-name">${b.source || '—'}</span>
+                </div>
+                <div class="pf-route-arrow">
+                    <div class="pf-route-line"></div>
+                    <i class="bi bi-airplane-fill pf-route-plane"></i>
+                </div>
+                <div class="pf-booking-city text-end">
+                    <span class="pf-city-code">${dstCode}</span>
+                    <span class="pf-city-name">${b.destination || '—'}</span>
+                </div>
+            </div>
+            <div class="pf-booking-details">
+                <div class="pf-bdet">
+                    <span class="pf-bdet-label"><i class="bi bi-calendar3 me-1"></i>Departure</span>
+                    <span class="pf-bdet-value">${depDate}</span>
+                </div>
+                <div class="pf-bdet">
+                    <span class="pf-bdet-label"><i class="bi bi-people me-1"></i>Passengers</span>
+                    <span class="pf-bdet-value">${tickets} ticket(s)</span>
+                </div>
+                <div class="pf-bdet">
+                    <span class="pf-bdet-label"><i class="bi bi-briefcase me-1"></i>Class</span>
+                    <span class="pf-bdet-value">${cls}</span>
+                </div>
+                <div class="pf-bdet">
+                    <span class="pf-bdet-label"><i class="bi bi-credit-card me-1"></i>Payment</span>
+                    <span class="pf-bdet-value">${payment}</span>
+                </div>
+                <div class="pf-bdet pf-bdet-total">
+                    <span class="pf-bdet-label">Total Paid</span>
+                    <span class="pf-bdet-price">€ ${total}</span>
+                </div>
+            </div>
+            <div class="pf-booking-footer">
+                <span class="pf-booking-id">Booking #${bkId}</span>
+                <button class="pf-view-pass-btn pf-local-pass-btn"
+                    data-bkid="${bkId}"
+                    data-src="${(b.source||'').replace(/"/g,'&quot;')}"
+                    data-dst="${(b.destination||'').replace(/"/g,'&quot;')}"
+                    data-date="${depDate}"
+                    data-cls="${cls}"
+                    data-pax="${tickets}"
+                    data-total="${total}"
+                    data-deptime="${(b.depTime||'')}"
+                    data-arrtime="${(b.arrTime||'')}"
+                    data-booking-id="${bkId}">
+                    <i class="bi bi-qr-code me-1"></i>View Pass
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+function switchTab(tab) {
+    document.querySelectorAll('.pf-tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.pf-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pf-qnav-link').forEach(l => l.classList.remove('active'));
+
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('tabBtn-' + tab).classList.add('active');
+
+    // Also sync sidebar nav
+    document.querySelectorAll('.pf-qnav-link').forEach(l => {
+        if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(tab)) {
+            l.classList.add('active');
+        }
+    });
+
+    if (tab === 'saved') loadSavedTrips();
+    if (tab === 'bookings') loadLocalBookings(); // Feature 2: keep in sync
+    if (tab === 'passes') loadLocalPasses();
+
+    return false;
+}
+
+/* ====================================================================
+   SAVED TRIPS (localStorage)
+===================================================================== */
+function loadSavedTrips() {
+    const grid = document.getElementById('savedTripsGrid');
+    const empty = document.getElementById('savedEmptyState');
+
+    let saved = [];
+    try {
+        saved = JSON.parse(localStorage.getItem(_lsKey('myfly_saved_trips')) || '[]');
+    } catch (e) { saved = []; }
+
+    if (!saved.length) {
+        grid.style.display = 'none';
+        empty.style.display = 'flex';
+        // Ensure metric counters stay synced
+        document.getElementById('savedTripsCountHeader').textContent = "0";
+        return;
+    }
+
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+    document.getElementById('savedTripsCountHeader').textContent = saved.length;
+
+    grid.innerHTML = saved.map((trip, idx) => {
+        
+        const cleanDestinationName = (trip.destination || '').split(',')[0].trim();
+        
+        return `
+        <div class="pf-saved-card">
+            <div class="pf-saved-card-img" style="background-image: url('${trip.image || 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80'}');">
+                <button class="pf-saved-remove-btn" onclick="removeSavedTrip(${idx})" title="Remove">
+                    <i class="bi bi-x"></i>
+                </button>
+                <div class="pf-saved-price-tag">${trip.price || 'See prices'}</div>
+            </div>
+            <div class="pf-saved-card-body">
+                <h6 class="pf-saved-dest">${trip.destination || 'Unknown destination'}</h6>
+                <p class="pf-saved-note">${trip.note || 'Saved for later'}</p>
+                <a href="/bookingform?source=Tirana&destination=${encodeURIComponent(cleanDestinationName)}" class="pf-saved-book-btn">
+                    Book Now →
+                </a>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function removeSavedTrip(idx) {
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(_lsKey('myfly_saved_trips')) || '[]'); } catch(e) {}
+    saved.splice(idx, 1);
+    localStorage.setItem(_lsKey('myfly_saved_trips'), JSON.stringify(saved));
+    loadSavedTrips();
+}
+
+/* ====================================================================
+   BOARDING PASS MODAL  (multi-passenger, dark bp-card style, no total)
+===================================================================== */
+function _buildModalPassCard(idx, paxName, seat, fromIata, from, toIata, to, date, cls, depTime, arrTime, bkId) {
+    var barcodeId = 'modalPassBarcode_' + idx;
+    var timeLine = '';
+    if (depTime && arrTime) {
+        timeLine = '<div style="border-top:1.5px dashed rgba(255,255,255,.2);margin:10px 0"></div>'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+            + '<div><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px">Departs</div><div style="font-size:.95rem;font-weight:700">'+depTime+'</div></div>'
+            + '<div style="text-align:center;flex:1;padding:0 8px"><div style="border-top:1px dashed rgba(255,255,255,.3);margin:3px 0"></div></div>'
+            + '<div style="text-align:right"><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px">Arrives</div><div style="font-size:.95rem;font-weight:700;color:#93c5fd">'+arrTime+'</div></div>'
+            + '</div>';
+    }
+    // strip any leading "BK-" since we'll add it in the label
+    var cleanId = String(bkId).replace(/^BK-/i, '');
+    var suffix = idx === 0 ? '' : '-P' + (idx + 1);
+    return '<div id="modalCard_' + idx + '" style="background:linear-gradient(135deg,#071242 0%,#1e3a8a 100%);color:#fff;border-radius:14px;padding:22px;position:relative;overflow:hidden;margin-bottom:' + (idx > 0 ? '14px' : '0') + ';">'
+        + '<div style="position:absolute;right:-8px;top:-8px;font-size:5rem;opacity:.05;transform:rotate(15deg)">✈</div>'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        + '<span style="font-size:.95rem;font-weight:800;letter-spacing:.03em;">✈ MyFly</span>'
+        + '<span style="font-size:.62rem;font-weight:700;letter-spacing:.1em;opacity:.55;background:rgba(255,255,255,.1);padding:3px 8px;border-radius:4px;">BOARDING PASS</span>'
+        + '</div>'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0;">'
+        + '<div><div style="font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1;">'+fromIata+'</div><div style="font-size:.7rem;opacity:.6;margin-top:2px;">'+from+'</div></div>'
+        + '<div style="font-size:1.3rem;opacity:.45;">→</div>'
+        + '<div style="text-align:right;"><div style="font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1;">'+toIata+'</div><div style="font-size:.7rem;opacity:.6;margin-top:2px;">'+to+'</div></div>'
+        + '</div>'
+        + '<div style="border-top:1.5px dashed rgba(255,255,255,.2);margin:12px 0;"></div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+        + '<div><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px;">Passenger</div><div style="font-size:.82rem;font-weight:700;">'+paxName+'</div></div>'
+        + '<div><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px;">Date</div><div style="font-size:.82rem;font-weight:700;">'+date+'</div></div>'
+        + '<div><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px;">Class</div><div style="font-size:.82rem;font-weight:700;">'+cls+'</div></div>'
+        + '<div><div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.5;margin-bottom:2px;">Seat</div><div style="font-size:.82rem;font-weight:700;">'+seat+'</div></div>'
+        + '</div>'
+        + timeLine
+        + '<div style="border-top:1.5px dashed rgba(255,255,255,.2);margin:12px 0;"></div>'
+        + '<div style="height:44px;width:100%;background:rgba(255,255,255,.07);border-radius:4px;display:flex;align-items:stretch;padding:4px 6px;overflow:hidden;box-sizing:border-box;" id="'+barcodeId+'"></div>'
+        + '<div style="text-align:center;font-size:.68rem;opacity:.45;letter-spacing:.1em;margin-top:4px;">BK-'+cleanId+suffix+'</div>'
+        + '</div>';
+}
+
+function showBoardingPass(id, from, to, date, cls, pax, total, depTime, arrTime, paxNamesJson) {
+    var fromIata = from.substring(0,3).toUpperCase();
+    var toIata   = to.substring(0,3).toUpperCase();
+    var numPax   = parseInt(pax) || 1;
+
+    
+    var paxNames = [];
+    if (paxNamesJson && typeof paxNamesJson === 'string' && paxNamesJson.trim() !== '') {
+        try { paxNames = JSON.parse(paxNamesJson); } catch(e) { paxNames = []; }
+    } else if (Array.isArray(paxNamesJson)) {
+        paxNames = paxNamesJson;
+    }
+
+    // Fallback name: use the logged-in user's full name from the page header
+    var loggedInName = (document.querySelector('.pf-hero-name') || {}).textContent || 'Passenger';
+    loggedInName = loggedInName.trim();
+
+    // Seat columns
+    var colArr = ['A','B','C','D','E','F'];
+
+    // Build all pass cards
+    var wrap = document.getElementById('modalPassesWrap');
+    wrap.innerHTML = '';
+    for (var i = 0; i < numPax; i++) {
+        var pRow = Math.floor(Math.random() * 30) + 1;
+        var pCol = colArr[Math.floor(Math.random() * colArr.length)];
+        // Use saved pax name if available; for pax 1 fall back to logged-in user's name
+        var pName = (paxNames[i] && paxNames[i].trim()) ? paxNames[i] : (i === 0 ? loggedInName : ('Passenger ' + (i+1)));
+        wrap.innerHTML += _buildModalPassCard(i, pName, pRow+pCol, fromIata, from, toIata, to, date, cls, depTime, arrTime, id);
+    }
+
+    // Draw barcodes after DOM renders
+    setTimeout(function() {
+        for (var k = 0; k < numPax; k++) {
+            (function(ki) {
+                var el = document.getElementById('modalPassBarcode_' + ki);
+                if (el) _genModalBarcode(el, String(id).replace(/\D/g,'') * 1 + ki * 137);
+            })(k);
+        }
+    }, 50);
+
+    // Passenger tab pills (only when >1)
+    var tabsWrap = document.getElementById('modalPaxTabs');
+    tabsWrap.innerHTML = '';
+    tabsWrap.style.display = numPax > 1 ? 'block' : 'none';
+    if (numPax > 1) {
+        for (var t = 0; t < numPax; t++) {
+            var pill = document.createElement('button');
+            pill.type = 'button';
+            pill.style.cssText = 'font-size:.72rem;font-weight:700;border-radius:20px;padding:3px 12px;margin-right:4px;cursor:pointer;border:1.5px solid #071242;';
+            pill.style.background = t === 0 ? '#071242' : 'transparent';
+            pill.style.color = t === 0 ? '#fff' : '#071242';
+            pill.textContent = 'Pax ' + (t+1) + ': ' + (paxNames[t] || ('Passenger '+(t+1))).split(' ')[0];
+            (function(ti) {
+                pill.onclick = function() {
+                    var card = document.getElementById('modalCard_' + ti);
+                    if (card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
+                    tabsWrap.querySelectorAll('button').forEach(function(b, bi) {
+                        b.style.background = bi === ti ? '#071242' : 'transparent';
+                        b.style.color = bi === ti ? '#fff' : '#071242';
+                    });
+                };
+            })(t);
+            tabsWrap.appendChild(pill);
+        }
+    }
+
+    document.getElementById('passModalBackdrop').classList.add('active');
+    document.getElementById('passModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function _genModalBarcode(container, seed) {
+    if (!container) return;
+    
+    var html = '<div style="display:flex;align-items:stretch;height:100%;width:100%;flex-grow:1;justify-content:space-between;">';
+    var s = parseInt(seed) || 42;
+    for (var i = 0; i < 52; i++) {
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        var w = (s % 3) + 1;
+        html += '<div style="width:'+w+'px;background:rgba(255,255,255,0.85);height:100%;flex-shrink:0;border-radius:1px;"></div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function closePassModal() {
+    document.getElementById('passModalBackdrop').classList.remove('active');
+    document.getElementById('passModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePassModal(); });
+
+/* ====================================================================
+   LOCAL BOARDING PASSES (saved from bookingform via myfly_boarding_passes)
+===================================================================== */
+function loadLocalPasses() {
+    var grid = document.getElementById('localPassesGrid');
+    var empty = document.getElementById('localPassesEmpty');
+    if (!grid) return;
+
+    var passes = [];
+    try { passes = JSON.parse(localStorage.getItem(_lsKey('myfly_boarding_passes')) || '[]'); } catch(e) {}
+
+    // Also derive passes from local bookings that weren't explicitly saved
+    var localBookings = [];
+    try { localBookings = JSON.parse(localStorage.getItem(_lsKey('myfly_local_bookings')) || '[]'); } catch(e) {}
+    localBookings.forEach(function(b) {
+        var exists = passes.find(function(p){ return p.id === b.bookingId; });
+        if (!exists && b.confirmation === 'Confirmed') {
+            var depDate = b.departureDate
+                ? new Date(b.departureDate + 'T12:00:00').toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+                : '—';
+            passes.push({
+                id: b.bookingId,
+                from: b.source || '—',
+                fromIata: (b.source || '???').substring(0,3).toUpperCase(),
+                to: b.destination || '—',
+                toIata: (b.destination || '???').substring(0,3).toUpperCase(),
+                passenger: '',
+                date: depDate,
+                cls: b.flightClass || 'Economy',
+                seat: '',
+                tickets: b.tickets || 1,
+                derivedFromBooking: true
+            });
+        }
+    });
+
+    // Check if server already rendered passes (Thymeleaf section visible)
+    var serverGrid = document.querySelector('.pf-passes-grid');
+    var hasServerPasses = serverGrid && serverGrid.querySelectorAll('.pf-boarding-pass').length > 0;
+
+    if (!passes.length) {
+        grid.style.display = 'none';
+        if (!hasServerPasses) {
+            empty.style.display = 'flex';
+        }
+        return;
+    }
+
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+
+    
+    var serverEmpty = document.getElementById('serverPassesEmpty');
+    if (serverEmpty) serverEmpty.style.display = 'none';
+
+    // Update PASSES count in hero stats
+    var counterEl = document.getElementById('passesCountHeader');
+    if (counterEl) {
+        var serverCount = parseInt(counterEl.getAttribute('data-server-count') || counterEl.textContent || '0');
+        if (!counterEl.getAttribute('data-server-count')) {
+            counterEl.setAttribute('data-server-count', serverCount);
+        }
+        counterEl.textContent = serverCount + passes.length;
+    }
+
+    grid.innerHTML = passes.map(function(p, idx) {
+        var fromIata = p.fromIata || (p.from || '???').substring(0,3).toUpperCase();
+        var toIata   = p.toIata   || (p.to   || '???').substring(0,3).toUpperCase();
+        var numPax   = parseInt(p.tickets || p.pax || 1);
+        var barcodeId = 'localPassBarcode_' + idx;
+        var seat = p.seat || (Math.floor(Math.random()*30+1) + ['A','B','C','D','E','F'][Math.floor(Math.random()*6)]);
+        // Passenger name: use paxNames[0] if available, else passenger field
+        var passengerName = (p.paxNames && p.paxNames[0]) ? p.paxNames[0] : (p.passenger || '—');
+        return '<div class="pf-boarding-pass">'
+            + '<div class="pf-pass-header"><span class="pf-pass-airline">✈ MyFly</span><span class="pf-pass-type">BOARDING PASS</span></div>'
+            + '<div class="pf-pass-route">'
+            + '<div><div class="pf-pass-iata">'+fromIata+'</div><div class="pf-pass-city">'+p.from+'</div></div>'
+            + '<div class="pf-pass-arrow">→</div>'
+            + '<div class="text-end"><div class="pf-pass-iata">'+toIata+'</div><div class="pf-pass-city">'+p.to+'</div></div>'
+            + '</div>'
+            + '<div class="pf-pass-dashes"></div>'
+            + '<div class="pf-pass-details">'
+            + '<div class="pf-pass-field"><div class="pf-pass-field-label">PASSENGER</div><div class="pf-pass-field-value">'+passengerName+'</div></div>'
+            + '<div class="pf-pass-field"><div class="pf-pass-field-label">DATE</div><div class="pf-pass-field-value">'+(p.date||'—')+'</div></div>'
+            + '<div class="pf-pass-field"><div class="pf-pass-field-label">CLASS</div><div class="pf-pass-field-value">'+(p.cls||'Economy')+'</div></div>'
+            + '<div class="pf-pass-field"><div class="pf-pass-field-label">SEAT</div><div class="pf-pass-field-value">'+seat+'</div></div>'
+            + (numPax > 1 ? '<div class="pf-pass-field" style="grid-column:1/-1"><div class="pf-pass-field-label">PAX</div><div class="pf-pass-field-value">'+numPax+' passengers</div></div>' : '')
+            + '</div>'
+            + '<div class="pf-pass-dashes"></div>'
+            + '<div class="pf-pass-barcode"><div class="pf-barcode-visual" id="'+barcodeId+'"></div>'
+            + '<div class="pf-pass-booking-id">'+(p.id||'BK-?')+'</div></div>'
+            + '<button class="pf-print-pass-btn" onclick="printPass(this)"><i class="bi bi-printer me-1"></i>Print Pass</button>'
+            + '</div>';
+    }).join('');
+
+    // Generate barcodes
+    passes.forEach(function(p, idx) {
+        setTimeout(function(){
+            generateBarcode(document.getElementById('localPassBarcode_'+idx), idx * 137 + 42);
+        }, 50);
+    });
+}
+
+
+function generateBarcode(container, seed) {
+    if (!container) return;
+    const numBars = 48;
+    /* FIX: justify-content:space-between stretches bars to fill full container width. */
+    let html = '<div class="pf-barcode-bars" style="width:100%;flex-grow:1;justify-content:space-between;">';
+    let s = parseInt(seed) || 42;
+    for (let i = 0; i < numBars; i++) {
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        const w = (s % 3) + 1;
+        html += `<div style="width:${w}px; background:#0f172a; height:100%; flex-shrink:0;"></div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function printPass(btn) {
+    const passEl = btn.closest('.pf-boarding-pass');
+    if (!passEl) return;
+    const printWin = window.open('', '_blank', 'width=500,height=700');
+    printWin.document.write(`
+        <html><head><title>Boarding Pass</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            body { margin: 20px; font-family: Inter, sans-serif; }
+            @media print { .pf-print-pass-btn { display: none; } }
+        </style>
+        </head><body>${passEl.outerHTML}<script>window.print();window.close();<\/script></body></html>`);
+    printWin.document.close();
+}
+
+/* ====================================================================
+   INIT: Generate barcodes for inline passes + load saved trips count
+===================================================================== */
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate barcodes for boarding pass tab
+    document.querySelectorAll('.pf-barcode-visual[data-id]').forEach(el => {
+        generateBarcode(el, el.getAttribute('data-id'));
+    });
+
+    // Update saved trips badge if any exist
+    try {
+        const saved = JSON.parse(localStorage.getItem(_lsKey('myfly_saved_trips')) || '[]');
+        // Added mapping to synchronize top metric view immediately
+        document.getElementById('savedTripsCountHeader').textContent = saved.length;
+        if (saved.length > 0) {
+            const btn = document.getElementById('tabBtn-saved');
+            if (btn) btn.innerHTML += ` <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">${saved.length}</span>`;
+        }
+    } catch(e) {}
+
+    // Feature 2: load locally-saved bookings from bookingform into My Bookings tab
+    loadLocalBookings();
+    // Load locally-saved boarding passes into Boarding Passes tab
+    loadLocalPasses();
+
+    // Delegated click handler for local booking "View Pass" buttons (uses data attributes)
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.pf-local-pass-btn');
+        if (!btn) return;
+        var bkId    = btn.getAttribute('data-bkid') || btn.getAttribute('data-booking-id') || '';
+        var src     = btn.getAttribute('data-src') || '';
+        var dst     = btn.getAttribute('data-dst') || '';
+        var date    = btn.getAttribute('data-date') || '';
+        var cls     = btn.getAttribute('data-cls') || 'Economy';
+        var pax     = btn.getAttribute('data-pax') || '1';
+        var total   = btn.getAttribute('data-total') || '0';
+        var depTime = btn.getAttribute('data-deptime') || '';
+        var arrTime = btn.getAttribute('data-arrtime') || '';
+
+        // Retrieve paxNames from localStorage using the bookingId
+        var paxNames = [];
+        try {
+            var localBookings = JSON.parse(localStorage.getItem(_lsKey('myfly_local_bookings')) || '[]');
+            var match = localBookings.find(function(b) { return b.bookingId === bkId; });
+            if (match && match.paxNames) paxNames = match.paxNames;
+        } catch(e2) {}
+
+        showBoardingPass(bkId, src, dst, date, cls, pax, total, depTime, arrTime, paxNames);
+    });
+});
+</script>
+</body>
+</html>
